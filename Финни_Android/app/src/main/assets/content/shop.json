@@ -1,0 +1,66 @@
+[
+  {
+    "id": "food_1",
+    "name": "Корм «Вкусняшка»",
+    "category": "MANDATORY",
+    "price": 10,
+    "effect": { "mood": 0, "satiety": 15 },
+    "influenceHint": "Финни будет сыт. Корм — обязательная покупка каждого периода."
+  },
+  {
+    "id": "food_2",
+    "name": "Вкусный обед",
+    "category": "MANDATORY",
+    "price": 18,
+    "effect": { "mood": 5, "satiety": 25 },
+    "influenceHint": "Большая порция: сытость сильно растёт, Финни доволен."
+  },
+  {
+    "id": "vitamins_1",
+    "name": "Витамины для здоровья",
+    "category": "MANDATORY",
+    "price": 14,
+    "effect": { "mood": 5, "satiety": 10 },
+    "influenceHint": "Здоровый питомец — весёлый питомец. Уход — это обязательный расход."
+  },
+  {
+    "id": "grooming_1",
+    "name": "Купание и расчёска",
+    "category": "MANDATORY",
+    "price": 12,
+    "effect": { "mood": 10, "satiety": 0 },
+    "influenceHint": "После купания Финни чистый и довольный. Уход нужен регулярно."
+  },
+  {
+    "id": "toy_ball",
+    "name": "Мячик с погремушкой",
+    "category": "OPTIONAL",
+    "price": 8,
+    "effect": { "mood": 10, "satiety": 0 },
+    "influenceHint": "Игрушка поднимает настроение. Желаемое — можно купить или отложить."
+  },
+  {
+    "id": "toy_mouse",
+    "name": "Игрушечная мышка",
+    "category": "OPTIONAL",
+    "price": 12,
+    "effect": { "mood": 12, "satiety": 0 },
+    "influenceHint": "Финни будет весело охотиться. Необязательная, но приятная покупка."
+  },
+  {
+    "id": "bow_1",
+    "name": "Нарядный бантик",
+    "category": "OPTIONAL",
+    "price": 7,
+    "effect": { "mood": 8, "satiety": 0 },
+    "influenceHint": "Украшение радует, но без него можно обойтись."
+  },
+  {
+    "id": "sticker_1",
+    "name": "Наклейки с героями",
+    "category": "OPTIONAL",
+    "price": 5,
+    "effect": { "mood": 6, "satiety": 0 },
+    "influenceHint": "Небольшая радость за небольшие деньги. Хороший пример «дешевле — можно позволить чаще»."
+  }
+]

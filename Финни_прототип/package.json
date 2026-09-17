@@ -1,0 +1,9 @@
+{
+  "name": "finni-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Интерактивный прототип «Питомец Финни» — финансовая грамотность для детей 7–11 лет",
+  "scripts": {
+    "dev": "node server.js"
+  }
+}
