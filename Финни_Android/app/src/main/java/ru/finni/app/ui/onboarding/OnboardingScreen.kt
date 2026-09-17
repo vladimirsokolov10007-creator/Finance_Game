@@ -56,7 +56,7 @@ fun OnboardingScreen(
         DecisionCard(emoji = "🎾", title = "Потратить на желаемое",
             text = "Игрушки и украшения. Приятно, но может подождать.")
         DecisionCard(emoji = "🏦", title = "Отложить",
-            text = "Копи на большую цель понемногу каждый период.")
+            text = "Копи на большую цель понемногу каждую неделю.")
 
         Spacer(Modifier.height(20.dp))
         FullWidthFinniButton(text = "Понятно, начнём!", onClick = onDone)

@@ -20,8 +20,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.finni.app.ui.common.FinniEventToast
 import ru.finni.app.ui.game.GameViewModel
 import ru.finni.core.design.FinniSecondaryButton
+import ru.finni.core.economy.AchievementEngine
 
 /** Экран 11: история, учебный прогресс, справочник терминов (ТЗ п. 2.5.11). */
 @Composable
@@ -37,6 +39,8 @@ fun HistoryScreen(
     val stages = listOf("Малыш", "Друг", "Звезда")
     val goal = viewModel.content.goals.firstOrNull { it.id == profile.goalId }
 
+    FinniEventToast(viewModel)
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -47,9 +51,66 @@ fun HistoryScreen(
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(14.dp)) {
                     Text("Питомец: ${profile.petName} · стадия «${stages.getOrElse(profile.petStage) { "Малыш" }}»")
-                    Text("Периодов завершено: ${closed.size}")
+                    Text("Недель завершено: ${closed.size}")
                     Text("Заданий выполнено: ${progress.values.count { it.completed }} из ${viewModel.content.tasks.size}")
                     Text("Цель: ${goal?.name ?: "не выбрана"}${goal?.let { " — накоплено ${profile.savings} из ${it.price}" } ?: ""}")
+                }
+            }
+        }
+
+        // v0.3: достижения
+        item {
+            Text(
+                "Достижения: ${state.achievements.size} из ${AchievementEngine.all.size}",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+        items(AchievementEngine.all, key = { "ach_" + it.id }) { def ->
+            val unlocked = def.id in state.achievements
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = if (unlocked) MaterialTheme.colorScheme.secondaryContainer
+                    else MaterialTheme.colorScheme.surface,
+                ),
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(
+                        "${def.emoji} ${def.title}" + if (unlocked) " ✓" else " 🔒",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        def.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        // v0.3: трофеи за исполненные цели
+        item {
+            Text("Трофеи", style = MaterialTheme.typography.titleMedium)
+        }
+        val trophies = viewModel.trophyList()
+        if (trophies.isEmpty()) {
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Text(
+                        "Пока нет трофеев. Накопи на цель и исполни мечту — трофей появится на питомце!",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        } else {
+            items(trophies, key = { "tr_" + it.second }) { (emoji, name) ->
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                    Text(
+                        "$emoji $name",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
                 }
             }
         }

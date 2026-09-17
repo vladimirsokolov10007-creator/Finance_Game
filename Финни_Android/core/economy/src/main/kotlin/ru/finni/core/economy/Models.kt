@@ -21,13 +21,16 @@ data class BudgetFact(
     val total: Int get() = mandatory + optional + savings
 }
 
-/** Состояние питомца: обратимые показатели 0..100. */
+/** Состояние питомца: показатели 0..максимум. Максимумы растут от предметов магазина (v0.3). */
 data class PetCondition(
     val mood: Int = 70,
     val satiety: Int = 70,
+    val maxMood: Int = 100,
+    val maxSatiety: Int = 100,
 ) {
     init {
-        require(mood in 0..100 && satiety in 0..100) { "Показатели состояния должны быть в 0..100" }
+        require(maxMood in 100..150 && maxSatiety in 100..150) { "Максимумы должны быть в 100..150" }
+        require(mood in 0..maxMood && satiety in 0..maxSatiety) { "Показатели состояния должны быть в 0..максимум" }
     }
 }
 

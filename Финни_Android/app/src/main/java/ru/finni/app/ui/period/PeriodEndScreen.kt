@@ -20,7 +20,7 @@ import ru.finni.app.ui.game.GameViewModel
 import ru.finni.app.ui.plan.PlanFactTable
 import ru.finni.core.design.FullWidthFinniButton
 
-/** Экраны 9–10 сценария: обратная связь по периоду и рост питомца. */
+/** Экраны 9–10 сценария: обратная связь по неделе и рост питомца. */
 @Composable
 fun PeriodEndScreen(
     onNextPeriod: () -> Unit,
@@ -30,11 +30,11 @@ fun PeriodEndScreen(
     val outcome = state.periodOutcome
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Итоги периода", style = MaterialTheme.typography.titleLarge)
+        Text("Итоги недели", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(12.dp))
 
         if (outcome == null) {
-            Text("Период ещё не завершён.")
+            Text("Неделя ещё не завершена.")
             Spacer(Modifier.height(12.dp))
             FullWidthFinniButton(text = "Назад", onClick = onNextPeriod)
             return@Column
@@ -54,7 +54,7 @@ fun PeriodEndScreen(
         }
         Spacer(Modifier.height(12.dp))
 
-        Text("Период ${period.index}: план vs факт", style = MaterialTheme.typography.titleMedium)
+        Text("Неделя ${period.index}: план vs факт", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
         PlanFactTable(
             planM = period.planMandatory, planO = period.planOptional, planS = period.planSavings,
@@ -64,7 +64,7 @@ fun PeriodEndScreen(
         Text(
             buildString {
                 append(if (period.mandatoryCovered) "✓ Обязательные расходы закрыты"
-                else "✗ Обязательные расходы не закрыты — исправь в новом периоде")
+                else "✗ Обязательные расходы не закрыты — исправь на новой неделе")
                 append("\n")
                 append(if (period.savingsMet) "✓ Накопления по плану или больше"
                 else "✗ Накоплено меньше плана")
@@ -74,7 +74,7 @@ fun PeriodEndScreen(
         )
         Spacer(Modifier.height(16.dp))
         FullWidthFinniButton(
-            text = "Начать период ${state.profile?.periodIndex ?: 1}",
+            text = "Начать неделю ${state.profile?.periodIndex ?: 1}",
             onClick = {
                 viewModel.startNextPeriod()
                 onNextPeriod()

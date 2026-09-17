@@ -3,7 +3,9 @@ package ru.finni.core.economy
 /** Начисления игровой валюты. */
 object RewardEngine {
     const val START_BALANCE = 40
-    const val DAILY_INCOME = 20
+
+    /** Карманные деньги: начисляются автоматически в начале каждой новой недели (со 2-й). */
+    const val WEEKLY_INCOME = 20
     const val ALL_CORRECT_BONUS = 2
 
     fun taskReward(baseReward: Int, allStepsCorrect: Boolean): Int =

@@ -4,63 +4,119 @@
     "name": "Корм «Вкусняшка»",
     "category": "MANDATORY",
     "price": 10,
-    "effect": { "mood": 0, "satiety": 15 },
-    "influenceHint": "Финни будет сыт. Корм — обязательная покупка каждого периода."
+    "effect": {
+      "mood": 0,
+      "satiety": 15
+    },
+    "influenceHint": "Финни будет сыт, а максимум сытости вырастет на 5. Корм — обязательная покупка каждой недели.",
+    "maxBonus": {
+      "mood": 0,
+      "satiety": 5
+    }
   },
   {
     "id": "food_2",
     "name": "Вкусный обед",
     "category": "MANDATORY",
     "price": 18,
-    "effect": { "mood": 5, "satiety": 25 },
-    "influenceHint": "Большая порция: сытость сильно растёт, Финни доволен."
+    "effect": {
+      "mood": 5,
+      "satiety": 25
+    },
+    "influenceHint": "Большая порция: сытость сильно растёт, а максимум сытости растёт на 5 — Финни будет сыт дольше.",
+    "maxBonus": {
+      "mood": 0,
+      "satiety": 5
+    }
   },
   {
     "id": "vitamins_1",
     "name": "Витамины для здоровья",
     "category": "MANDATORY",
     "price": 14,
-    "effect": { "mood": 5, "satiety": 10 },
-    "influenceHint": "Здоровый питомец — весёлый питомец. Уход — это обязательный расход."
+    "effect": {
+      "mood": 5,
+      "satiety": 10
+    },
+    "influenceHint": "Здоровый питомец — весёлый питомец. Плюс максимум сытости +10 навсегда!",
+    "maxBonus": {
+      "mood": 0,
+      "satiety": 10
+    }
   },
   {
     "id": "grooming_1",
     "name": "Купание и расчёска",
     "category": "MANDATORY",
     "price": 12,
-    "effect": { "mood": 10, "satiety": 0 },
-    "influenceHint": "После купания Финни чистый и довольный. Уход нужен регулярно."
+    "effect": {
+      "mood": 10,
+      "satiety": 0
+    },
+    "influenceHint": "После купания Финни чистый и довольный. Максимум настроения +5 навсегда.",
+    "maxBonus": {
+      "mood": 5,
+      "satiety": 0
+    }
   },
   {
     "id": "toy_ball",
     "name": "Мячик с погремушкой",
     "category": "OPTIONAL",
     "price": 8,
-    "effect": { "mood": 10, "satiety": 0 },
-    "influenceHint": "Игрушка поднимает настроение. Желаемое — можно купить или отложить."
+    "effect": {
+      "mood": 10,
+      "satiety": 0
+    },
+    "influenceHint": "Игрушка поднимает настроение и максимум настроения +5.",
+    "maxBonus": {
+      "mood": 5,
+      "satiety": 0
+    }
   },
   {
     "id": "toy_mouse",
     "name": "Игрушечная мышка",
     "category": "OPTIONAL",
     "price": 12,
-    "effect": { "mood": 12, "satiety": 0 },
-    "influenceHint": "Финни будет весело охотиться. Необязательная, но приятная покупка."
+    "effect": {
+      "mood": 12,
+      "satiety": 0
+    },
+    "influenceHint": "Мышка — лучшая добыча! Максимум настроения +10.",
+    "maxBonus": {
+      "mood": 10,
+      "satiety": 0
+    }
   },
   {
     "id": "bow_1",
     "name": "Нарядный бантик",
     "category": "OPTIONAL",
     "price": 7,
-    "effect": { "mood": 8, "satiety": 0 },
-    "influenceHint": "Украшение радует, но без него можно обойтись."
+    "effect": {
+      "mood": 8,
+      "satiety": 0
+    },
+    "influenceHint": "Бантик радует Финни и поднимает максимум настроения на 5.",
+    "maxBonus": {
+      "mood": 5,
+      "satiety": 0
+    }
   },
   {
     "id": "sticker_1",
     "name": "Наклейки с героями",
     "category": "OPTIONAL",
     "price": 5,
-    "effect": { "mood": 6, "satiety": 0 },
-    "influenceHint": "Небольшая радость за небольшие деньги. Хороший пример «дешевле — можно позволить чаще»."
+    "effect": {
+      "mood": 6,
+      "satiety": 0
+    },
+    "influenceHint": "Небольшая радость: настроение +6 и максимум настроения +5.",
+    "maxBonus": {
+      "mood": 5,
+      "satiety": 0
+    }
   }
 ]

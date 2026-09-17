@@ -34,6 +34,8 @@ data class ShopItemContent(
     val price: Int,
     val mood: Int,
     val satiety: Int,
+    val maxMoodBonus: Int,
+    val maxSatietyBonus: Int,
     val hint: String,
 )
 
@@ -92,6 +94,7 @@ class ContentRepository @Inject constructor(
         return (0 until arr.length()).map { i ->
             val s = arr.getJSONObject(i)
             val effect: JSONObject = s.optJSONObject("effect") ?: JSONObject()
+            val maxBonus: JSONObject = s.optJSONObject("maxBonus") ?: JSONObject()
             ShopItemContent(
                 id = s.getString("id"),
                 name = s.getString("name"),
@@ -99,6 +102,8 @@ class ContentRepository @Inject constructor(
                 price = s.getInt("price"),
                 mood = effect.optInt("mood", 0),
                 satiety = effect.optInt("satiety", 0),
+                maxMoodBonus = maxBonus.optInt("mood", 0),
+                maxSatietyBonus = maxBonus.optInt("satiety", 0),
                 hint = s.getString("influenceHint"),
             )
         }

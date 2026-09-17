@@ -48,14 +48,14 @@ fun PlanScreen(
 
         if (period != null) {
             // План подтверждён: показываем сравнение с фактом (ТЗ п. 2.5.5)
-            Text("План на период ${period.index} подтверждён. Сравнение с фактом:")
+            Text("План на неделю ${period.index} подтверждён. Сравнение с фактом:")
             Spacer(Modifier.height(8.dp))
             PlanFactTable(
                 planM = period.planMandatory, planO = period.planOptional, planS = period.planSavings,
                 factM = period.factMandatory, factO = period.factOptional, factS = period.factSavings,
             )
             Text(
-                "План нельзя изменить после подтверждения — но следующий период ты составишь ещё лучше!",
+                "План нельзя изменить после подтверждения — но следующую неделю ты составишь ещё лучше!",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

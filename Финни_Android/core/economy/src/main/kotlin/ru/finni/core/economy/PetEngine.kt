@@ -10,11 +10,16 @@ object PetEngine {
     private const val PENALTY_SATIETY = 20
     private const val BONUS_MOOD_PLAN_OK = 10
 
-    /** Применить эффект покупки/задания к состоянию (кламп 0..100). */
+    /** Потолок максимумов показателей (предметы магазина, v0.3). */
+    const val MAX_CAP = 150
+
+    /** Применить эффект покупки/задания к состоянию (кламп 0..максимум). */
     fun applyEffect(condition: PetCondition, moodDelta: Int, satietyDelta: Int): PetCondition =
         PetCondition(
-            mood = (condition.mood + moodDelta).coerceIn(0, 100),
-            satiety = (condition.satiety + satietyDelta).coerceIn(0, 100),
+            mood = (condition.mood + moodDelta).coerceIn(0, condition.maxMood),
+            satiety = (condition.satiety + satietyDelta).coerceIn(0, condition.maxSatiety),
+            maxMood = condition.maxMood,
+            maxSatiety = condition.maxSatiety,
         )
 
     /** Пересчёт состояния по итогам периода + текст обратной связи для ребёнка. */
@@ -24,23 +29,55 @@ object PetEngine {
         return if (!result.mandatoryCovered) {
             PeriodOutcome(
                 condition = PetCondition(
-                    mood = (condition.mood - PENALTY_MOOD).coerceIn(0, 100),
-                    satiety = (condition.satiety - PENALTY_SATIETY).coerceIn(0, 100),
+                    mood = (condition.mood - PENALTY_MOOD).coerceIn(0, condition.maxMood),
+                    satiety = (condition.satiety - PENALTY_SATIETY).coerceIn(0, condition.maxSatiety),
+                    maxMood = condition.maxMood,
+                    maxSatiety = condition.maxSatiety,
                 ),
                 message = "Обязательные покупки не закрыты — Финни голодный и грустный. " +
-                        "В новом периоде сначала купи корм!",
+                        "На новой неделе сначала купи корм!",
             )
         } else if (result.adherence >= 0.99f) {
             PeriodOutcome(
                 condition = PetCondition(
-                    mood = (condition.mood + BONUS_MOOD_PLAN_OK).coerceIn(0, 100),
+                    mood = (condition.mood + BONUS_MOOD_PLAN_OK).coerceIn(0, condition.maxMood),
                     satiety = condition.satiety,
+                    maxMood = condition.maxMood,
+                    maxSatiety = condition.maxSatiety,
                 ),
                 message = "План выполнен точно! Финни гордится тобой.",
             )
         } else {
-            PeriodOutcome(condition, "Период завершён. Сравни план и факт — и улучши следующий период!")
+            PeriodOutcome(condition, "Неделя завершена. Сравни план и факт — и улучши следующую неделю!")
         }
+    }
+
+    /* ---------- v0.3: предупреждения, проигрыш, рост максимумов ---------- */
+
+    /** Игра окончена, если хотя бы один показатель упал до 0. */
+    fun isGameOver(condition: PetCondition): Boolean =
+        condition.mood <= 0 || condition.satiety <= 0
+
+    /** Уровень тревоги: 0 — ок, 1 — жёлтое предупреждение (≤20), 2 — красное (≤10). */
+    fun warningLevel(condition: PetCondition): Int {
+        val lowest = minOf(condition.mood, condition.satiety)
+        return when {
+            lowest <= 10 -> 2
+            lowest <= 20 -> 1
+            else -> 0
+        }
+    }
+
+    /** Предмет повышает максимум настроения/сытости (кап 150); текущее значение растёт вместе с максимумом. */
+    fun raiseCaps(condition: PetCondition, maxMoodBonus: Int, maxSatietyBonus: Int): PetCondition {
+        val newMaxMood = (condition.maxMood + maxMoodBonus).coerceAtMost(MAX_CAP)
+        val newMaxSatiety = (condition.maxSatiety + maxSatietyBonus).coerceAtMost(MAX_CAP)
+        return PetCondition(
+            mood = (condition.mood + maxMoodBonus).coerceAtMost(newMaxMood),
+            satiety = (condition.satiety + maxSatietyBonus).coerceAtMost(newMaxSatiety),
+            maxMood = newMaxMood,
+            maxSatiety = newMaxSatiety,
+        )
     }
 
     /** Развитие по среднему баллу периодов. Стадия никогда не понижается. */

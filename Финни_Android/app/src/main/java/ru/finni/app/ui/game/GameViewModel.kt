@@ -16,9 +16,12 @@ import ru.finni.core.data.ProfileEntity
 import ru.finni.core.data.ProfileRepository
 import ru.finni.core.data.TaskProgressEntity
 import ru.finni.core.data.TransactionEntity
+import ru.finni.core.economy.AchievementEngine
+import ru.finni.core.economy.AchievementStats
 import ru.finni.core.economy.BudgetEngine
 import ru.finni.core.economy.BudgetFact
 import ru.finni.core.economy.BudgetPlan
+import ru.finni.core.economy.PetCondition
 import ru.finni.core.economy.PetEngine
 import ru.finni.core.economy.PetStage
 import ru.finni.core.economy.RewardEngine
@@ -30,16 +33,28 @@ data class GameUiState(
     val loading: Boolean = true,
     val profile: ProfileEntity? = null,
     val activePeriod: PeriodEntity? = null,
-    val demo: Boolean = false,
-    val dailyClaimed: Boolean = false,
-    val periodOutcome: Pair<PeriodEntity, String>? = null, // итоги закрытого периода
+    val periodOutcome: Pair<PeriodEntity, String>? = null, // итоги закрытой недели
     val event: String? = null,      // одноразовое сообщение (toast)
     val eventId: Long = 0,
+    // v0.3: максимумы показателей, купленные предметы, трофеи, достижения
+    val maxMood: Int = 100,
+    val maxSatiety: Int = 100,
+    val purchasedItems: Set<String> = emptySet(),
+    val trophies: Set<String> = emptySet(),
+    val achievements: Set<String> = emptySet(),
 )
 
 private const val PREFS = "finni_prefs"
-private const val KEY_DEMO = "demo"
-private const val KEY_LAST_DAILY = "last_daily"
+private const val KEY_MAX_MOOD = "max_mood"
+private const val KEY_MAX_SATIETY = "max_satiety"
+private const val KEY_PURCHASED = "purchased_items"
+private const val KEY_TROPHIES = "trophies"
+private const val KEY_ACHIEVEMENTS = "achievements"
+private const val STAT_PURCHASES = "stat_purchases"
+private const val STAT_MANDATORY = "stat_mandatory"
+private const val STAT_PERFECT = "stat_perfect_plans"
+private const val STAT_GOALS = "stat_goals"
+private const val STAT_BEST_BALANCE = "stat_best_balance"
 
 /** Центральный ViewModel игрового цикла. Один инстанс создаётся в FinniNavHost и передаётся всем экранам. */
 @HiltViewModel
@@ -59,18 +74,22 @@ class GameViewModel @Inject constructor(
     val closedPeriods = MutableStateFlow<List<PeriodEntity>>(emptyList())
 
     init {
+        // v0.3: восстановление прогресса из prefs (максимумы, покупки, трофеи, достижения)
+        _uiState.update {
+            it.copy(
+                maxMood = prefs.getInt(KEY_MAX_MOOD, 100),
+                maxSatiety = prefs.getInt(KEY_MAX_SATIETY, 100),
+                purchasedItems = prefs.getStringSet(KEY_PURCHASED, emptySet()) ?: emptySet(),
+                trophies = prefs.getStringSet(KEY_TROPHIES, emptySet()) ?: emptySet(),
+                achievements = prefs.getStringSet(KEY_ACHIEVEMENTS, emptySet()) ?: emptySet(),
+            )
+        }
         viewModelScope.launch {
-            val demo = prefs.getBoolean(KEY_DEMO, false)
-            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-                .format(java.util.Date())
-            val dailyClaimed = prefs.getString(KEY_LAST_DAILY, null) == today
             repository.observeProfile().collect { profile ->
                 _uiState.update {
                     it.copy(
                         loading = false,
                         profile = profile,
-                        demo = demo,
-                        dailyClaimed = dailyClaimed && !demo,
                     )
                 }
                 if (profile != null) {
@@ -116,28 +135,6 @@ class GameViewModel @Inject constructor(
         it.copy(event = text, eventId = it.eventId + 1)
     }
 
-    /* ---------- доход ---------- */
-
-    fun claimDaily() {
-        val s = _uiState.value
-        val profile = s.profile ?: return
-        if (!s.demo && s.dailyClaimed) {
-            emitEvent("Ежедневный доход уже получен. Загляни завтра!")
-            return
-        }
-        viewModelScope.launch {
-            val newBalance = profile.balance + RewardEngine.DAILY_INCOME
-            repository.updateProfile(profile.copy(balance = newBalance))
-            repository.addTransaction(
-                profile.id, activePeriodId(), "INCOME_DAILY",
-                RewardEngine.DAILY_INCOME, "Ежедневный доход",
-            )
-            prefs.edit().putString(KEY_LAST_DAILY, today()).apply()
-            _uiState.update { it.copy(dailyClaimed = true) }
-            emitEvent("+${RewardEngine.DAILY_INCOME} монет — ежедневный доход!")
-        }
-    }
-
     /* ---------- план бюджета ---------- */
 
     fun confirmPlan(mandatory: Int, optional: Int, savings: Int) {
@@ -150,7 +147,7 @@ class GameViewModel @Inject constructor(
             ru.finni.core.economy.PlanCheck.Ok -> viewModelScope.launch {
                 val existing = _uiState.value.activePeriod
                 if (existing != null) {
-                    emitEvent("План уже подтверждён в этом периоде.")
+                    emitEvent("План уже подтверждён на этой неделе.")
                     return@launch
                 }
                 repository.upsertPeriod(
@@ -166,7 +163,7 @@ class GameViewModel @Inject constructor(
                         closedAt = null,
                     )
                 )
-                emitEvent("План подтверждён! В конце периода сравним его с фактом.")
+                emitEvent("План подтверждён! В конце недели сравним его с фактом.")
             }
         }
     }
@@ -176,15 +173,22 @@ class GameViewModel @Inject constructor(
     sealed interface PurchaseResult {
         data object Ok : PurchaseResult
         data class Declined(val lack: Int) : PurchaseResult
+        data object AlreadyOwned : PurchaseResult
     }
 
     fun buy(item: ShopItemContent): PurchaseResult {
-        val profile = _uiState.value.profile ?: return PurchaseResult.Declined(0)
+        val s = _uiState.value
+        val profile = s.profile ?: return PurchaseResult.Declined(0)
+        // v0.3: предметы магазина одноразовые
+        if (item.id in s.purchasedItems) return PurchaseResult.AlreadyOwned
         val newBalance = BudgetEngine.tryPurchase(profile.balance, item.price)
             ?: return PurchaseResult.Declined(item.price - profile.balance)
         viewModelScope.launch {
             val period = activePeriod()
-            val cond = ru.finni.core.economy.PetCondition(profile.mood, profile.satiety)
+            val cond = PetEngine.raiseCaps(
+                PetCondition(profile.mood, profile.satiety, s.maxMood, s.maxSatiety),
+                item.maxMoodBonus, item.maxSatietyBonus,
+            )
             val newCond = PetEngine.applyEffect(cond, item.mood, item.satiety)
             repository.updateProfile(
                 profile.copy(
@@ -193,6 +197,26 @@ class GameViewModel @Inject constructor(
                     satiety = newCond.satiety,
                 )
             )
+            val purchased = s.purchasedItems + item.id
+            prefs.edit()
+                .putInt(KEY_MAX_MOOD, newCond.maxMood)
+                .putInt(KEY_MAX_SATIETY, newCond.maxSatiety)
+                .putStringSet(KEY_PURCHASED, purchased)
+                .putInt(STAT_PURCHASES, prefs.getInt(STAT_PURCHASES, 0) + 1)
+                .apply()
+            if (item.mandatory) {
+                prefs.edit().putInt(STAT_MANDATORY, prefs.getInt(STAT_MANDATORY, 0) + 1).apply()
+            }
+            prefs.edit()
+                .putInt(STAT_BEST_BALANCE, maxOf(prefs.getInt(STAT_BEST_BALANCE, 0), newBalance))
+                .apply()
+            _uiState.update {
+                it.copy(
+                    maxMood = newCond.maxMood,
+                    maxSatiety = newCond.maxSatiety,
+                    purchasedItems = purchased,
+                )
+            }
             period?.let {
                 repository.upsertPeriod(
                     it.copy(
@@ -206,6 +230,7 @@ class GameViewModel @Inject constructor(
                 if (item.mandatory) "PURCHASE_MANDATORY" else "PURCHASE_OPTIONAL",
                 -item.price, item.name,
             )
+            checkAchievements()
         }
         return PurchaseResult.Ok
     }
@@ -265,11 +290,43 @@ class GameViewModel @Inject constructor(
         }
     }
 
+    /** v0.3: исполнить мечту — списать накопления, выдать трофей и авто-экипировать аксессуар. */
+    fun completeGoal(): Boolean {
+        val s = _uiState.value
+        val profile = s.profile ?: return false
+        val goal = content.goals.firstOrNull { it.id == profile.goalId } ?: return false
+        if (profile.savings < goal.price) return false
+        if (goal.id in s.trophies) return false
+        val goalIndex = content.goals.indexOf(goal).coerceAtLeast(0)
+        viewModelScope.launch {
+            val newTrophies = s.trophies + goal.id
+            repository.updateProfile(
+                profile.copy(
+                    savings = profile.savings - goal.price,
+                    petAccessory = 3 + goalIndex, // трофейный аксессуар
+                )
+            )
+            prefs.edit()
+                .putStringSet(KEY_TROPHIES, newTrophies)
+                .putInt(STAT_GOALS, prefs.getInt(STAT_GOALS, 0) + 1)
+                .apply()
+            _uiState.update { it.copy(trophies = newTrophies) }
+            repository.addTransaction(
+                profile.id, activePeriodId(),
+                "GOAL_COMPLETED", 0, "Цель исполнена: ${goal.name}",
+            )
+            emitEvent("🎉 Мечта сбылась! Трофей «${goal.name}» уже на питомце!")
+            checkAchievements()
+        }
+        return true
+    }
+
     /* ---------- задания ---------- */
 
     fun applyTaskEffects(mood: Int, satiety: Int) {
-        val profile = _uiState.value.profile ?: return
-        val cond = ru.finni.core.economy.PetCondition(profile.mood, profile.satiety)
+        val s = _uiState.value
+        val profile = s.profile ?: return
+        val cond = PetCondition(profile.mood, profile.satiety, s.maxMood, s.maxSatiety)
         val newCond = PetEngine.applyEffect(cond, mood, satiety)
         viewModelScope.launch {
             repository.updateProfile(profile.copy(mood = newCond.mood, satiety = newCond.satiety))
@@ -281,8 +338,12 @@ class GameViewModel @Inject constructor(
         val task = content.tasks.firstOrNull { it.id == taskId } ?: return
         val reward = RewardEngine.taskReward(task.reward, allCorrect)
         val prev = taskProgress.value[taskId]
+        val newBalance = profile.balance + reward
         viewModelScope.launch {
-            repository.updateProfile(profile.copy(balance = profile.balance + reward))
+            repository.updateProfile(profile.copy(balance = newBalance))
+            prefs.edit()
+                .putInt(STAT_BEST_BALANCE, maxOf(prefs.getInt(STAT_BEST_BALANCE, 0), newBalance))
+                .apply()
             repository.upsertTaskProgress(
                 TaskProgressEntity(
                     taskId = taskId,
@@ -294,14 +355,16 @@ class GameViewModel @Inject constructor(
             )
             repository.addTransaction(profile.id, activePeriodId(), "INCOME_TASK", reward, "Задание: ${task.title}")
             emitEvent("Задание завершено! Награда +$reward монет${if (allCorrect) " (всё верно — бонус +2!)" else ""}.")
+            checkAchievements()
         }
     }
 
-    /* ---------- итоги периода ---------- */
+    /* ---------- итоги недели ---------- */
 
-    fun closePeriod() {
-        val profile = _uiState.value.profile ?: return
-        val period = _uiState.value.activePeriod
+    fun closePeriod(onFinished: (gameOver: Boolean) -> Unit = {}) {
+        val s = _uiState.value
+        val profile = s.profile ?: return
+        val period = s.activePeriod
         viewModelScope.launch {
             val plan = if (period != null)
                 BudgetPlan(period.planMandatory, period.planOptional, period.planSavings)
@@ -311,9 +374,13 @@ class GameViewModel @Inject constructor(
             else BudgetFact()
             val result = BudgetEngine.periodResult(plan, fact)
             val outcome = PetEngine.closePeriod(
-                ru.finni.core.economy.PetCondition(profile.mood, profile.satiety), result,
+                PetCondition(profile.mood, profile.satiety, s.maxMood, s.maxSatiety), result,
             )
-            // стадия по среднему баллу закрытых периодов (включая текущий)
+            // v0.3: счётчик идеальных планов для достижения «Точный план»
+            if (result.mandatoryCovered && result.adherence >= 0.99f) {
+                prefs.edit().putInt(STAT_PERFECT, prefs.getInt(STAT_PERFECT, 0) + 1).apply()
+            }
+            // стадия по среднему баллу закрытых недель (включая текущую)
             val closedList = closedPeriods.value
             val allClosed = if (period != null)
                 closedList + period.copy(
@@ -334,26 +401,42 @@ class GameViewModel @Inject constructor(
                 message += " 🎉 ${profile.petName} вырос: новая стадия «${newStage.title}»!"
             }
 
-            period?.let {
-                repository.upsertPeriod(
-                    it.copy(
-                        status = "CLOSED",
-                        closedAt = System.currentTimeMillis(),
-                        mandatoryCovered = result.mandatoryCovered,
-                        savingsMet = result.savingsMet,
-                        adherence = result.adherence,
-                    )
-                )
+            val closedPeriod = period?.copy(
+                status = "CLOSED",
+                closedAt = System.currentTimeMillis(),
+                mandatoryCovered = result.mandatoryCovered,
+                savingsMet = result.savingsMet,
+                adherence = result.adherence,
+            )
+            closedPeriod?.let { repository.upsertPeriod(it) }
+            // v0.4: карманные деньги начисляются автоматически в начале каждой новой недели
+            // (кроме первой — в первую неделю живём только на стартовые 40 монет)
+            val newPeriodIndex = profile.periodIndex + 1
+            val weeklyIncome = if (newPeriodIndex >= 2) RewardEngine.WEEKLY_INCOME else 0
+            if (weeklyIncome > 0) {
+                message += " Неделя $newPeriodIndex: +$weeklyIncome монет карманных денег! 🪙"
             }
             repository.updateProfile(
                 profile.copy(
                     mood = outcome.condition.mood,
                     satiety = outcome.condition.satiety,
                     petStage = newStage.ordinal,
-                    periodIndex = profile.periodIndex + 1,
+                    periodIndex = newPeriodIndex,
+                    balance = profile.balance + weeklyIncome,
                 )
             )
-            _uiState.update { it.copy(periodOutcome = (period ?: emptyPeriod(profile)) to message) }
+            if (weeklyIncome > 0) {
+                repository.addTransaction(
+                    profile.id, null, "INCOME_WEEKLY", weeklyIncome, "Карманные деньги новой недели",
+                )
+                prefs.edit()
+                    .putInt(STAT_BEST_BALANCE, maxOf(prefs.getInt(STAT_BEST_BALANCE, 0), profile.balance + weeklyIncome))
+                    .apply()
+            }
+            _uiState.update { it.copy(periodOutcome = (closedPeriod ?: emptyPeriod(profile)) to message) }
+            checkAchievements()
+            // v0.3: проигрыш, если хотя бы один показатель упал до 0
+            onFinished(PetEngine.isGameOver(outcome.condition))
         }
     }
 
@@ -366,32 +449,78 @@ class GameViewModel @Inject constructor(
         status = "CLOSED", startedAt = 0, closedAt = 0,
     )
 
-    /* ---------- взрослый / демо / сброс ---------- */
+    /* ---------- утилиты ---------- */
 
-    fun toggleDemo() {
-        val newValue = !_uiState.value.demo
-        prefs.edit().putBoolean(KEY_DEMO, newValue).apply()
-        _uiState.update {
-            it.copy(demo = newValue, dailyClaimed = false)
-        }
+    /** Проверка и разблокировка достижений; новые — toast'ом. */
+    private fun checkAchievements() {
+        val stats = AchievementStats(
+            purchases = prefs.getInt(STAT_PURCHASES, 0),
+            mandatoryPurchases = prefs.getInt(STAT_MANDATORY, 0),
+            tasksCompleted = taskProgress.value.values.count { it.completed },
+            periodsClosed = closedPeriods.value.size,
+            perfectPlans = prefs.getInt(STAT_PERFECT, 0),
+            goalsCompleted = prefs.getInt(STAT_GOALS, 0),
+            trophies = _uiState.value.trophies.size,
+            bestBalance = prefs.getInt(STAT_BEST_BALANCE, 0),
+        )
+        val already = _uiState.value.achievements
+        val fresh = AchievementEngine.newlyUnlocked(stats, already)
+        if (fresh.isEmpty()) return
+        val newSet = already + fresh.map { it.id }
+        prefs.edit().putStringSet(KEY_ACHIEVEMENTS, newSet).apply()
+        _uiState.update { it.copy(achievements = newSet) }
+        emitEvent(
+            if (fresh.size == 1) "🏅 Достижение «${fresh[0].title}»!"
+            else fresh.joinToString(prefix = "🏅 Достижения: ") { "«${it.title}»" }
+        )
     }
 
-    fun resetProfile() {
+    /** Полный сброс игры: удаляет профиль и весь прогресс (v0.3). */
+    fun resetProfile(onDone: () -> Unit = {}) {
         viewModelScope.launch {
             repository.resetProfile()
-            prefs.edit().remove(KEY_LAST_DAILY).apply()
-            _uiState.update { it.copy(activePeriod = null, periodOutcome = null) }
+            prefs.edit().clear().apply()
+            _uiState.update {
+                it.copy(
+                    periodOutcome = null,
+                    maxMood = 100,
+                    maxSatiety = 100,
+                    purchasedItems = emptySet(),
+                    trophies = emptySet(),
+                    achievements = emptySet(),
+                )
+            }
+            transactions.value = emptyList()
+            taskProgress.value = emptyMap()
+            closedPeriods.value = emptyList()
+            onDone()
         }
     }
 
-    /* ---------- утилиты ---------- */
+    /** Текущее состояние питомца с учётом максимумов. */
+    fun petCondition(): PetCondition? {
+        val s = _uiState.value
+        val profile = s.profile ?: return null
+        return PetCondition(profile.mood, profile.satiety, s.maxMood, s.maxSatiety)
+    }
+
+    fun isGameOver(): Boolean = petCondition()?.let { PetEngine.isGameOver(it) } ?: false
+
+    fun warningLevel(): Int = petCondition()?.let { PetEngine.warningLevel(it) } ?: 0
+
+    /** Трофеи с эмодзи для отображения. */
+    fun trophyList(): List<Pair<String, String>> {
+        val goals = content.goals
+        val emojis = listOf("🎖️", "🚴", "⛺")
+        return _uiState.value.trophies.mapNotNull { goalId ->
+            val idx = goals.indexOfFirst { it.id == goalId }
+            if (idx >= 0) (emojis.getOrElse(idx) { "🏆" }) to goals[idx].name else null
+        }
+    }
 
     private suspend fun activePeriod(): PeriodEntity? = _uiState.value.activePeriod
 
     private fun activePeriodId(): String? = _uiState.value.activePeriod?.id
-
-    private fun today() = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-        .format(java.util.Date())
 
     fun goalRemainder(): Pair<Int, Int?>? {
         val profile = _uiState.value.profile ?: return null

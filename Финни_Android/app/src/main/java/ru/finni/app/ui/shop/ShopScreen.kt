@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.finni.app.ui.common.FinniEventToast
 import ru.finni.app.ui.game.GameViewModel
 import ru.finni.app.ui.game.ShopItemContent
 import ru.finni.core.design.FinniButton
@@ -40,6 +41,8 @@ fun ShopScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val profile = state.profile ?: return
+
+    FinniEventToast(viewModel)
 
     var showMandatory by rememberSaveable { mutableStateOf(true) }
     var pending by rememberSaveable { mutableStateOf<String?>(null) }
@@ -62,6 +65,7 @@ fun ShopScreen(
         val items = viewModel.content.shop.filter { it.mandatory == showMandatory }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
             items(items, key = { it.id }) { item ->
+                val owned = item.id in state.purchasedItems
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -83,10 +87,14 @@ fun ShopScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        FinniButton(text = "Купить", onClick = {
-                            pending = item.id
-                            declineLack = maxOf(0, item.price - profile.balance)
-                        })
+                        if (owned) {
+                            FinniSecondaryButton(text = "✓ Куплено", enabled = false, onClick = {})
+                        } else {
+                            FinniButton(text = "Купить", onClick = {
+                                pending = item.id
+                                declineLack = maxOf(0, item.price - profile.balance)
+                            })
+                        }
                     }
                 }
             }
@@ -102,15 +110,20 @@ fun ShopScreen(
             title = { Text(item.name) },
             text = {
                 if (canBuy) {
+                    val bonusText = buildString {
+                        if (item.maxMoodBonus > 0) append("Максимум настроения +${item.maxMoodBonus} навсегда.\n")
+                        if (item.maxSatietyBonus > 0) append("Максимум сытости +${item.maxSatietyBonus} навсегда.\n")
+                    }
                     Text(
                         "Цена: ${item.price} 🪙 (${if (item.mandatory) "обязательное" else "желаемое"})\n" +
-                                "${item.hint}\n\nПосле покупки баланс уменьшится, а покупка сохранится в истории периода."
+                                bonusText +
+                                "${item.hint}\n\nПосле покупки баланс уменьшится, а предмет нельзя будет купить повторно."
                     )
                 } else {
                     Text(
                         "Не хватает $declineLack монет. Покупка при недостатке средств недопустима.\n\n" +
                                 "Варианты: выполни задание и заработай, выбери товар подешевле " +
-                                "или отложи покупку до следующего периода."
+                                "или отложи покупку до следующей недели."
                     )
                 }
             },

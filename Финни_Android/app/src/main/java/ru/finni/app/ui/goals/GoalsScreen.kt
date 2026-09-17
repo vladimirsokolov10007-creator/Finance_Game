@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.finni.app.ui.common.FinniEventToast
 import ru.finni.app.ui.game.GameViewModel
 import ru.finni.core.design.FinniButton
 import ru.finni.core.design.FinniSecondaryButton
@@ -34,14 +35,18 @@ import ru.finni.core.design.FinniSecondaryButton
 @Composable
 fun GoalsScreen(
     onBack: () -> Unit,
+    onCelebration: (goalId: String) -> Unit,
     viewModel: GameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
     val profile = state.profile ?: return
     var showWithdrawDialog by rememberSaveable { mutableStateOf(false) }
 
+    FinniEventToast(viewModel)
+
     val goal = viewModel.content.goals.firstOrNull { it.id == profile.goalId }
     val remainder = goal?.let { maxOf(0, it.price - profile.savings) }
+    val goalReady = goal != null && profile.savings >= goal.price && goal.id !in state.trophies
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Цели и накопления", style = MaterialTheme.typography.titleLarge)
@@ -66,7 +71,7 @@ fun GoalsScreen(
                     val periods = viewModel.goalRemainder()?.second
                     Text(
                         "Цена: ${goal.price} · осталось собрать: $remainder" +
-                                (periods?.let { " · примерно $it периодов" } ?: ""),
+                                (periods?.let { " · примерно $it недель" } ?: ""),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -84,6 +89,17 @@ fun GoalsScreen(
                         enabled = profile.savings >= 10,
                         onClick = { showWithdrawDialog = true },
                         modifier = Modifier.weight(1f),
+                    )
+                }
+                // v0.3: награда за крупную накопленную цель
+                if (goalReady) {
+                    Spacer(Modifier.height(8.dp))
+                    FinniButton(
+                        text = "🎉 Исполнить мечту!",
+                        onClick = {
+                            if (viewModel.completeGoal()) onCelebration(goal!!.id)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -135,7 +151,7 @@ fun GoalsScreen(
                         "Накопления уменьшатся до ${preview.newSavings} 🪙.\n" +
                                 (preview.goalRemainder?.let {
                                     "До цели «${goal?.name}» останется собрать $it 🪙" +
-                                            (preview.periodsToGoal?.let { p -> " (~$p периодов)" } ?: "") + "."
+                                            (preview.periodsToGoal?.let { p -> " (~$p недель)" } ?: "") + "."
                                 } ?: "") +
                                 "\n\nПодтверди, если это осознанное решение."
                     )
