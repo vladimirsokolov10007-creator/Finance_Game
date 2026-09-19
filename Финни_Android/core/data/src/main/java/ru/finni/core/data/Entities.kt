@@ -9,10 +9,12 @@ data class ProfileEntity(
     @PrimaryKey val id: String,
     val childName: String,
     val petName: String,
-    /** Индексы выборов конструктора: тело, окрас, аксессуар. */
+    /** Персонаж: 0 — Девочка · худи, 1 — Девочка · лапки, 2 — Мальчик. */
     val petBody: Int,
     val petColor: Int,
     val petAccessory: Int,
+    /** Возрастная группа игрока: 0 — 7–9 лет, 1 — 10–11 лет (влияет на сложность заданий). */
+    val ageGroup: Int,
     val balance: Int,
     val savings: Int,
     val goalId: String?,

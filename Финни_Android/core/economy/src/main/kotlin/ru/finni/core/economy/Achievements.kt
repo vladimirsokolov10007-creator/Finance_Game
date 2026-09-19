@@ -25,7 +25,7 @@ object AchievementEngine {
 
     val all: List<AchievementDef> = listOf(
         AchievementDef("first_purchase", "🛒", "Первая покупка", "Купи первый предмет для Финни в магазине."),
-        AchievementDef("caretaker", "🧼", "Заботливый хозяин", "Купи 3 обязательных предмета (корм и уход)."),
+        AchievementDef("caretaker", "🧼", "Заботливый хозяин", "Купи 3 улучшения для Финни."),
         AchievementDef("shopper", "🏪", "Знаток магазина", "Сделай 5 покупок в магазине."),
         AchievementDef("scholar", "🎓", "Юный экономист", "Выполни первое задание."),
         AchievementDef("planner", "📋", "Точный план", "Заверши неделю с идеальным выполнением плана."),

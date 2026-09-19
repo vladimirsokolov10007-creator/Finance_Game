@@ -8,7 +8,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.finni.core.data.PeriodEntity
@@ -55,6 +58,7 @@ private const val STAT_MANDATORY = "stat_mandatory"
 private const val STAT_PERFECT = "stat_perfect_plans"
 private const val STAT_GOALS = "stat_goals"
 private const val STAT_BEST_BALANCE = "stat_best_balance"
+private const val KEY_TOPIC_DAY_PREFIX = "task_topic_day_"
 
 /** Центральный ViewModel игрового цикла. Один инстанс создаётся в FinniNavHost и передаётся всем экранам. */
 @HiltViewModel
@@ -102,23 +106,31 @@ class GameViewModel @Inject constructor(
                 }
             }
         }
-        // транзакции/прогресс — отдельные потоки
+        // транзакции/прогресс/периоды — привязываем к профилю через flatMapLatest:
+        // при свежей установке профиля ещё нет на момент создания VM, поэтому
+        // «снять один раз .first()» больше нельзя — коллектор умирал до создания профиля.
         viewModelScope.launch {
-            val p = repository.observeProfile().first() ?: return@launch
-            repository.observeTransactions(p.id).collect { transactions.value = it }
+            repository.observeProfile().flatMapLatest { p ->
+                if (p == null) emptyFlow() else repository.observeTransactions(p.id)
+            }.collect { transactions.value = it }
         }
         viewModelScope.launch {
-            val p = repository.observeProfile().first() ?: return@launch
-            repository.observeTaskProgress(p.id).collect { list ->
+            repository.observeProfile().flatMapLatest { p ->
+                if (p == null) emptyFlow() else repository.observeTaskProgress(p.id)
+            }.collect { list ->
                 taskProgress.value = list.associateBy { it.taskId }
             }
         }
         viewModelScope.launch {
-            val p = repository.observeProfile().first() ?: return@launch
-            repository.observePeriods(p.id).collect { list ->
+            repository.observeProfile().flatMapLatest { p ->
+                if (p == null) flowOf(emptyList()) else repository.observePeriods(p.id)
+            }.collect { list ->
                 closedPeriods.value = list.filter { it.status == "CLOSED" }
                 val active = list.firstOrNull { it.status == "ACTIVE" }
-                if (_uiState.value.activePeriod?.id != active?.id) {
+                // важно: сравниваем весь объект, а не только id — иначе факт покупок
+                // (factMandatory и т.д.) не доезжает в activePeriod, и closePeriod
+                // закрывает неделю по устаревшей копии с нулевым фактом
+                if (_uiState.value.activePeriod != active) {
                     _uiState.update { it.copy(activePeriod = active) }
                 }
             }
@@ -171,25 +183,49 @@ class GameViewModel @Inject constructor(
     /* ---------- покупки ---------- */
 
     sealed interface PurchaseResult {
-        data object Ok : PurchaseResult
+        /** victory = этой покупкой куплены все 5 улучшений (победа). */
+        data class Ok(val victory: Boolean = false) : PurchaseResult
         data class Declined(val lack: Int) : PurchaseResult
         data object AlreadyOwned : PurchaseResult
+
+        /** Улучшение недоступно: сначала нужно купить previousName. */
+        data class Locked(val previousName: String) : PurchaseResult
     }
+
+    /** Улучшения в порядке покупки. */
+    fun improvements(): List<ShopItemContent> =
+        content.shop.filter { it.mandatory }.sortedBy { it.keyOrder }
+
+    /** Все 5 улучшений куплены — условие победы. */
+    fun allImprovementsBought(): Boolean =
+        improvements().all { it.id in _uiState.value.purchasedItems }
 
     fun buy(item: ShopItemContent): PurchaseResult {
         val s = _uiState.value
         val profile = s.profile ?: return PurchaseResult.Declined(0)
-        // v0.3: предметы магазина одноразовые
-        if (item.id in s.purchasedItems) return PurchaseResult.AlreadyOwned
+        if (item.mandatory) {
+            // улучшения одноразовые
+            if (item.id in s.purchasedItems) return PurchaseResult.AlreadyOwned
+            // v0.5: строго по порядку — пока не куплен предыдущий, следующий недоступен
+            val next = improvements().firstOrNull { it.id !in s.purchasedItems }
+            if (next != null && item.id != next.id) return PurchaseResult.Locked(next.name)
+        }
         val newBalance = BudgetEngine.tryPurchase(profile.balance, item.price)
             ?: return PurchaseResult.Declined(item.price - profile.balance)
+        // считаем синхронно: корутина ниже обновит purchasedItems асинхронно,
+        // а вызывающий код (ShopScreen) проверяет результат сразу после buy()
+        val newPurchased = if (item.mandatory) s.purchasedItems + item.id else s.purchasedItems
+        val victoryAchieved = item.mandatory &&
+                improvements().all { it.id in newPurchased }
         viewModelScope.launch {
             val period = activePeriod()
-            val cond = PetEngine.raiseCaps(
-                PetCondition(profile.mood, profile.satiety, s.maxMood, s.maxSatiety),
-                item.maxMoodBonus, item.maxSatietyBonus,
-            )
-            val newCond = PetEngine.applyEffect(cond, item.mood, item.satiety)
+            val base = PetCondition(profile.mood, profile.satiety, s.maxMood, s.maxSatiety)
+            // продукты восполняют показатели; улучшения поднимают только максимум
+            val newCond = if (item.mandatory) {
+                PetEngine.raiseCaps(base, item.maxMoodBonus, item.maxSatietyBonus)
+            } else {
+                PetEngine.applyEffect(base, item.mood, item.satiety)
+            }
             repository.updateProfile(
                 profile.copy(
                     balance = newBalance,
@@ -197,16 +233,17 @@ class GameViewModel @Inject constructor(
                     satiety = newCond.satiety,
                 )
             )
-            val purchased = s.purchasedItems + item.id
-            prefs.edit()
+            val purchased = newPurchased
+            val editor = prefs.edit()
                 .putInt(KEY_MAX_MOOD, newCond.maxMood)
                 .putInt(KEY_MAX_SATIETY, newCond.maxSatiety)
-                .putStringSet(KEY_PURCHASED, purchased)
                 .putInt(STAT_PURCHASES, prefs.getInt(STAT_PURCHASES, 0) + 1)
-                .apply()
             if (item.mandatory) {
-                prefs.edit().putInt(STAT_MANDATORY, prefs.getInt(STAT_MANDATORY, 0) + 1).apply()
+                editor
+                    .putStringSet(KEY_PURCHASED, purchased)
+                    .putInt(STAT_MANDATORY, prefs.getInt(STAT_MANDATORY, 0) + 1)
             }
+            editor.apply()
             prefs.edit()
                 .putInt(STAT_BEST_BALANCE, maxOf(prefs.getInt(STAT_BEST_BALANCE, 0), newBalance))
                 .apply()
@@ -227,12 +264,15 @@ class GameViewModel @Inject constructor(
             }
             repository.addTransaction(
                 profile.id, period?.id,
-                if (item.mandatory) "PURCHASE_MANDATORY" else "PURCHASE_OPTIONAL",
+                if (item.mandatory) "PURCHASE_IMPROVEMENT" else "PURCHASE_PRODUCT",
                 -item.price, item.name,
             )
+            if (victoryAchieved) {
+                emitEvent("🏆 Все улучшения куплены — это победа!")
+            }
             checkAchievements()
         }
-        return PurchaseResult.Ok
+        return PurchaseResult.Ok(victoryAchieved)
     }
 
     /* ---------- накопления ---------- */
@@ -343,6 +383,8 @@ class GameViewModel @Inject constructor(
             repository.updateProfile(profile.copy(balance = newBalance))
             prefs.edit()
                 .putInt(STAT_BEST_BALANCE, maxOf(prefs.getInt(STAT_BEST_BALANCE, 0), newBalance))
+                // v0.5: из каждой категории можно выполнить только 1 задание в день
+                .putString(KEY_TOPIC_DAY_PREFIX + task.topic, todayStr())
                 .apply()
             repository.upsertTaskProgress(
                 TaskProgressEntity(
@@ -358,6 +400,13 @@ class GameViewModel @Inject constructor(
             checkAchievements()
         }
     }
+
+    /** Выполнялось ли сегодня задание из этой категории (лимит 1 в день). */
+    fun topicDoneToday(topic: String): Boolean =
+        prefs.getString(KEY_TOPIC_DAY_PREFIX + topic, null) == todayStr()
+
+    private fun todayStr() = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        .format(java.util.Date())
 
     /* ---------- итоги недели ---------- */
 

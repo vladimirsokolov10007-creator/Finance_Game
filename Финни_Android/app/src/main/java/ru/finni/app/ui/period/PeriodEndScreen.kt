@@ -63,8 +63,8 @@ fun PeriodEndScreen(
         Spacer(Modifier.height(8.dp))
         Text(
             buildString {
-                append(if (period.mandatoryCovered) "✓ Обязательные расходы закрыты"
-                else "✗ Обязательные расходы не закрыты — исправь на новой неделе")
+                append(if (period.mandatoryCovered) "✓ Улучшения куплены"
+                else "✗ Улучшения не куплены — исправь на новой неделе")
                 append("\n")
                 append(if (period.savingsMet) "✓ Накопления по плану или больше"
                 else "✗ Накоплено меньше плана")

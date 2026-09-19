@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ru.finni.app.ui.common.FinniEventToast
+import ru.finni.app.ui.common.PetAnimation
 import ru.finni.app.ui.game.GameViewModel
 import ru.finni.core.data.ProfileEntity
 import ru.finni.core.design.FinniButton
@@ -93,7 +94,6 @@ private fun MainContent(
     onOpenHistory: () -> Unit,
     onClosePeriod: () -> Unit,
 ) {
-    val bodies = listOf("🐶", "🐱", "🐰")
     val accessories = listOf("", "🎀", "👑", "🎖️", "🚴", "⛺")
     val stages = listOf("Малыш", "Друг", "Звезда")
 
@@ -117,13 +117,12 @@ private fun MainContent(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // v0.5: анимированный питомец (видео) вместо эмодзи; персонаж из профиля
+                PetAnimation(character = profile.petBody)
+                Spacer(Modifier.height(8.dp))
                 Text(
-                    text = bodies.getOrElse(profile.petBody) { "🐶" } +
+                    text = "${profile.petName} · ${stages.getOrElse(profile.petStage) { "Малыш" }}" +
                             accessories.getOrElse(profile.petAccessory) { "" },
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Text(
-                    text = "${profile.petName} · ${stages.getOrElse(profile.petStage) { "Малыш" }}",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(Modifier.height(8.dp))

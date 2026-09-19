@@ -2,121 +2,110 @@
   {
     "id": "food_1",
     "name": "Корм «Вкусняшка»",
-    "category": "MANDATORY",
+    "category": "PRODUCT",
     "price": 10,
-    "effect": {
-      "mood": 0,
-      "satiety": 15
-    },
-    "influenceHint": "Финни будет сыт, а максимум сытости вырастет на 5. Корм — обязательная покупка каждой недели.",
-    "maxBonus": {
-      "mood": 0,
-      "satiety": 5
-    }
+    "effect": { "mood": 0, "satiety": 15 },
+    "influenceHint": "Восполняет сытость. Продукты можно покупать сколько угодно раз."
   },
   {
     "id": "food_2",
     "name": "Вкусный обед",
-    "category": "MANDATORY",
+    "category": "PRODUCT",
     "price": 18,
-    "effect": {
-      "mood": 5,
-      "satiety": 25
-    },
-    "influenceHint": "Большая порция: сытость сильно растёт, а максимум сытости растёт на 5 — Финни будет сыт дольше.",
-    "maxBonus": {
-      "mood": 0,
-      "satiety": 5
-    }
+    "effect": { "mood": 5, "satiety": 25 },
+    "influenceHint": "Большая порция: сытость и настроение заметно растут."
   },
   {
     "id": "vitamins_1",
     "name": "Витамины для здоровья",
-    "category": "MANDATORY",
+    "category": "PRODUCT",
     "price": 14,
-    "effect": {
-      "mood": 5,
-      "satiety": 10
-    },
-    "influenceHint": "Здоровый питомец — весёлый питомец. Плюс максимум сытости +10 навсегда!",
-    "maxBonus": {
-      "mood": 0,
-      "satiety": 10
-    }
+    "effect": { "mood": 5, "satiety": 10 },
+    "influenceHint": "Здоровый питомец — весёлый питомец. Поддержка на всю неделю."
   },
   {
     "id": "grooming_1",
     "name": "Купание и расчёска",
-    "category": "MANDATORY",
+    "category": "PRODUCT",
     "price": 12,
-    "effect": {
-      "mood": 10,
-      "satiety": 0
-    },
-    "influenceHint": "После купания Финни чистый и довольный. Максимум настроения +5 навсегда.",
-    "maxBonus": {
-      "mood": 5,
-      "satiety": 0
-    }
+    "effect": { "mood": 10, "satiety": 0 },
+    "influenceHint": "После купания Финни чистый и довольный."
   },
   {
     "id": "toy_ball",
     "name": "Мячик с погремушкой",
-    "category": "OPTIONAL",
+    "category": "PRODUCT",
     "price": 8,
-    "effect": {
-      "mood": 10,
-      "satiety": 0
-    },
-    "influenceHint": "Игрушка поднимает настроение и максимум настроения +5.",
-    "maxBonus": {
-      "mood": 5,
-      "satiety": 0
-    }
+    "effect": { "mood": 10, "satiety": 0 },
+    "influenceHint": "Игрушка поднимает настроение. Приятная радость за небольшие деньги."
   },
   {
     "id": "toy_mouse",
     "name": "Игрушечная мышка",
-    "category": "OPTIONAL",
+    "category": "PRODUCT",
     "price": 12,
-    "effect": {
-      "mood": 12,
-      "satiety": 0
-    },
-    "influenceHint": "Мышка — лучшая добыча! Максимум настроения +10.",
-    "maxBonus": {
-      "mood": 10,
-      "satiety": 0
-    }
+    "effect": { "mood": 12, "satiety": 0 },
+    "influenceHint": "Финни будет весело охотиться."
   },
   {
     "id": "bow_1",
     "name": "Нарядный бантик",
-    "category": "OPTIONAL",
+    "category": "PRODUCT",
     "price": 7,
-    "effect": {
-      "mood": 8,
-      "satiety": 0
-    },
-    "influenceHint": "Бантик радует Финни и поднимает максимум настроения на 5.",
-    "maxBonus": {
-      "mood": 5,
-      "satiety": 0
-    }
+    "effect": { "mood": 8, "satiety": 0 },
+    "influenceHint": "Украшение радует питомца и хозяина."
   },
   {
     "id": "sticker_1",
     "name": "Наклейки с героями",
-    "category": "OPTIONAL",
+    "category": "PRODUCT",
     "price": 5,
-    "effect": {
-      "mood": 6,
-      "satiety": 0
-    },
-    "influenceHint": "Небольшая радость: настроение +6 и максимум настроения +5.",
-    "maxBonus": {
-      "mood": 5,
-      "satiety": 0
-    }
+    "effect": { "mood": 6, "satiety": 0 },
+    "influenceHint": "Небольшая радость за самые маленькие деньги."
+  },
+  {
+    "id": "imp_bed",
+    "name": "Лежанка «Облако»",
+    "category": "IMPROVEMENT",
+    "keyOrder": 1,
+    "price": 10,
+    "maxBonus": { "mood": 10, "satiety": 0 },
+    "influenceHint": "Улучшение 1 из 5. Максимум настроения +10 навсегда. Покупается один раз, по порядку."
+  },
+  {
+    "id": "imp_feeder",
+    "name": "Автокормушка",
+    "category": "IMPROVEMENT",
+    "keyOrder": 2,
+    "price": 15,
+    "maxBonus": { "mood": 0, "satiety": 10 },
+    "influenceHint": "Улучшение 2 из 5. Максимум сытости +10 навсегда. Становится доступна после Лежанки."
+  },
+  {
+    "id": "imp_complex",
+    "name": "Игровой комплекс",
+    "category": "IMPROVEMENT",
+    "keyOrder": 3,
+    "price": 20,
+    "maxBonus": { "mood": 10, "satiety": 0 },
+    "influenceHint": "Улучшение 3 из 5. Максимум настроения +10 навсегда. Доступен после Автокормушки."
+  },
+  {
+    "id": "imp_ration",
+    "name": "Полноценный рацион",
+    "category": "IMPROVEMENT",
+    "keyOrder": 4,
+    "price": 30,
+    "maxBonus": { "mood": 0, "satiety": 10 },
+    "influenceHint": "Улучшение 4 из 5. Максимум сытости +10 навсегда. Доступен после Игрового комплекса."
+  },
+  {
+    "id": "imp_house",
+    "name": "Домик мечты",
+    "category": "IMPROVEMENT",
+    "keyOrder": 5,
+    "price": 40,
+    "maxBonus": { "mood": 15, "satiety": 15 },
+    "influenceHint": "Улучшение 5 из 5 — финальное! Максимумы настроения и сытости +15. После него — победа!"
   }
 ]

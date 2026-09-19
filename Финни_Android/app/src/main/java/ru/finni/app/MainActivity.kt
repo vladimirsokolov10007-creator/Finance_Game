@@ -24,6 +24,7 @@ import ru.finni.app.ui.plan.PlanScreen
 import ru.finni.app.ui.shop.ShopScreen
 import ru.finni.app.ui.tasks.TaskPlayScreen
 import ru.finni.app.ui.tasks.TasksScreen
+import ru.finni.app.ui.victory.VictoryScreen
 import ru.finni.core.design.FinniTheme
 
 object Routes {
@@ -39,6 +40,7 @@ object Routes {
     const val HISTORY = "history"
     const val GAME_OVER = "game_over"
     const val CELEBRATION = "celebration"
+    const val VICTORY = "victory"
 }
 
 @AndroidEntryPoint
@@ -83,14 +85,24 @@ fun FinniNavHost() {
             )
         }
         composable(Routes.PLAN) {
-            PlanScreen(onBack = { navController.popBackStack() }, viewModel = gameViewModel)
+            PlanScreen(
+                onBack = { navController.popBackStack() },
+                onHome = { navController.popBackStack(Routes.MAIN, false) },
+                viewModel = gameViewModel,
+            )
         }
         composable(Routes.SHOP) {
-            ShopScreen(onBack = { navController.popBackStack() }, viewModel = gameViewModel)
+            ShopScreen(
+                onBack = { navController.popBackStack() },
+                onHome = { navController.popBackStack(Routes.MAIN, false) },
+                onVictory = { navController.navigate(Routes.VICTORY) },
+                viewModel = gameViewModel,
+            )
         }
         composable(Routes.GOALS) {
             GoalsScreen(
                 onBack = { navController.popBackStack() },
+                onHome = { navController.popBackStack(Routes.MAIN, false) },
                 onCelebration = { goalId ->
                     navController.navigate("${Routes.CELEBRATION}/$goalId")
                 },
@@ -100,6 +112,7 @@ fun FinniNavHost() {
         composable(Routes.TASKS) {
             TasksScreen(
                 onBack = { navController.popBackStack() },
+                onHome = { navController.popBackStack(Routes.MAIN, false) },
                 onPlay = { id -> navController.navigate("${Routes.TASK_PLAY}/$id") },
                 viewModel = gameViewModel,
             )
@@ -111,6 +124,7 @@ fun FinniNavHost() {
             TaskPlayScreen(
                 taskId = entry.arguments?.getString("taskId") ?: "",
                 onBack = { navController.popBackStack() },
+                onHome = { navController.popBackStack(Routes.MAIN, false) },
                 viewModel = gameViewModel,
             )
         }
@@ -123,10 +137,25 @@ fun FinniNavHost() {
             )
         }
         composable(Routes.HISTORY) {
-            HistoryScreen(onBack = { navController.popBackStack() }, viewModel = gameViewModel)
+            HistoryScreen(
+                onBack = { navController.popBackStack() },
+                onHome = { navController.popBackStack(Routes.MAIN, false) },
+                viewModel = gameViewModel,
+            )
         }
         composable(Routes.GAME_OVER) {
             GameOverScreen(
+                onRestart = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                },
+                onHome = { navController.popBackStack() },
+                viewModel = gameViewModel,
+            )
+        }
+        composable(Routes.VICTORY) {
+            VictoryScreen(
                 onRestart = {
                     navController.navigate(Routes.ONBOARDING) {
                         popUpTo(Routes.MAIN) { inclusive = true }

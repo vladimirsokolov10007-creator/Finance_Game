@@ -34,8 +34,8 @@ object PetEngine {
                     maxMood = condition.maxMood,
                     maxSatiety = condition.maxSatiety,
                 ),
-                message = "Обязательные покупки не закрыты — Финни голодный и грустный. " +
-                        "На новой неделе сначала купи корм!",
+                message = "Улучшение не куплено — Финни голодный и грустный. " +
+                        "Следи, чтобы план бюджета выполнялся!",
             )
         } else if (result.adherence >= 0.99f) {
             PeriodOutcome(

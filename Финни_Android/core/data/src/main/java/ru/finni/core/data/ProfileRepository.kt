@@ -16,6 +16,7 @@ class ProfileRepository(private val db: FinniDatabase) {
         petBody: Int,
         petColor: Int,
         petAccessory: Int,
+        ageGroup: Int,
         startBalance: Int,
     ): ProfileEntity {
         val profile = ProfileEntity(
@@ -25,6 +26,7 @@ class ProfileRepository(private val db: FinniDatabase) {
             petBody = petBody,
             petColor = petColor,
             petAccessory = petAccessory,
+            ageGroup = ageGroup,
             balance = startBalance,
             savings = 0,
             goalId = null,

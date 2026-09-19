@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,9 +23,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.finni.app.ui.common.PetAnimation
 import ru.finni.app.ui.game.GameViewModel
 import ru.finni.core.design.FullWidthFinniButton
 
@@ -89,24 +90,18 @@ fun CreatePetScreen(
 
         Text("Кто твой питомец?", style = MaterialTheme.typography.titleMedium)
         PickerRow(
-            items = listOf("🐶", "🐱", "🐰"),
+            items = listOf("Девочка · худи", "Девочка · лапки", "Мальчик"),
             selected = state.body,
             onSelect = viewModel::onBodyChange,
         )
-        Text("Окрас", style = MaterialTheme.typography.titleMedium)
+        Text("Сколько тебе лет?", style = MaterialTheme.typography.titleMedium)
         PickerRow(
-            items = listOf("Природный", "Солнечный", "Ягодный"),
-            selected = state.color,
-            onSelect = viewModel::onColorChange,
-        )
-        Text("Аксессуар", style = MaterialTheme.typography.titleMedium)
-        PickerRow(
-            items = listOf("Без", "Бантик", "Корона"),
-            selected = state.accessory,
-            onSelect = viewModel::onAccessoryChange,
+            items = listOf("7–9 лет", "10–11 лет"),
+            selected = state.ageGroup,
+            onSelect = viewModel::onAgeGroupChange,
         )
         Text(
-            "3 × 3 × 3 = 27 комбинаций внешности",
+            "Персонаж выбирается навсегда. Возраст влияет на задания: для 10–11 лет они чуть сложнее.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -122,13 +117,8 @@ fun CreatePetScreen(
 
 @Composable
 private fun PetPreview(state: CreatePetUiState) {
-    val bodies = listOf("🐶", "🐱", "🐰")
-    val accessories = listOf("", "🎀", "👑")
-    Text(
-        text = bodies[state.body] + accessories[state.accessory],
-        style = MaterialTheme.typography.titleLarge,
-        textAlign = TextAlign.Center,
-    )
+    // v0.5: живое превью — анимация выбранного персонажа
+    PetAnimation(character = state.body)
     Text(
         text = state.petName.ifBlank { "Твой питомец" },
         style = MaterialTheme.typography.titleMedium,
@@ -144,6 +134,7 @@ private fun PickerRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

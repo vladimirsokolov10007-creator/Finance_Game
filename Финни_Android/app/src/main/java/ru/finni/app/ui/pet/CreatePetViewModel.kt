@@ -15,8 +15,8 @@ data class CreatePetUiState(
     val childName: String = "",
     val petName: String = "",
     val body: Int = 0,
-    val color: Int = 0,
-    val accessory: Int = 0,
+    /** Возрастная группа: 0 — 7–9 лет, 1 — 10–11 лет. */
+    val ageGroup: Int = 0,
     val created: Boolean = false,
 ) {
     val canCreate: Boolean get() = petName.isNotBlank()
@@ -33,8 +33,7 @@ class CreatePetViewModel @Inject constructor(
     fun onChildNameChange(value: String) = _uiState.update { it.copy(childName = value) }
     fun onPetNameChange(value: String) = _uiState.update { it.copy(petName = value) }
     fun onBodyChange(index: Int) = _uiState.update { it.copy(body = index) }
-    fun onColorChange(index: Int) = _uiState.update { it.copy(color = index) }
-    fun onAccessoryChange(index: Int) = _uiState.update { it.copy(accessory = index) }
+    fun onAgeGroupChange(index: Int) = _uiState.update { it.copy(ageGroup = index) }
 
     fun createProfile() {
         val s = _uiState.value
@@ -44,8 +43,9 @@ class CreatePetViewModel @Inject constructor(
                 childName = s.childName.trim().ifBlank { "Игрок" },
                 petName = s.petName.trim(),
                 petBody = s.body,
-                petColor = s.color,
-                petAccessory = s.accessory,
+                petColor = 0,
+                petAccessory = 0,
+                ageGroup = s.ageGroup,
                 startBalance = RewardEngine.START_BALANCE,
             )
             _uiState.update { it.copy(created = true) }

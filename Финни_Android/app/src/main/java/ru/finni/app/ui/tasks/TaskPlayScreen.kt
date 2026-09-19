@@ -2,6 +2,7 @@ package ru.finni.app.ui.tasks
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +33,7 @@ import ru.finni.core.design.FinniSecondaryButton
 fun TaskPlayScreen(
     taskId: String,
     onBack: () -> Unit,
+    onHome: () -> Unit,
     viewModel: GameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -126,6 +128,9 @@ fun TaskPlayScreen(
             )
             Spacer(Modifier.height(8.dp))
         }
-        FinniSecondaryButton(text = "К списку заданий", onClick = onBack, modifier = Modifier.fillMaxWidth())
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FinniSecondaryButton(text = "К списку заданий", onClick = onBack, modifier = Modifier.weight(1f))
+            FinniSecondaryButton(text = "🏠 Главный экран", onClick = onHome, modifier = Modifier.weight(1f))
+        }
     }
 }

@@ -25,12 +25,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import ru.finni.app.ui.game.GameViewModel
+import ru.finni.core.design.FinniSecondaryButton
 import ru.finni.core.design.FullWidthFinniButton
 
-/** Экран 5 сценария: план бюджета на период (3 направления, контроль суммы). */
+/** Экран 5 сценария: план бюджета на неделю (3 направления, контроль суммы). */
 @Composable
 fun PlanScreen(
     onBack: () -> Unit,
+    onHome: () -> Unit,
     viewModel: GameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -60,7 +62,7 @@ fun PlanScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(16.dp))
-            FullWidthFinniButton(text = "Назад", onClick = onBack)
+            BottomButtons(onBack, onHome)
             return@Column
         }
 
@@ -73,8 +75,8 @@ fun PlanScreen(
         val sum = m + o + s
         val over = sum > profile.balance
 
-        PlanSlider("🍖 Обязательные расходы", "Еда и уход для питомца", m, profile.balance) { m = it }
-        PlanSlider("🎾 Необязательные расходы", "Игрушки и украшения", o, profile.balance) { o = it }
+        PlanSlider("🔧 Улучшения", "Крупные покупки — только по порядку", m, profile.balance) { m = it }
+        PlanSlider("🍖 Продукты", "Еда и забота о Финни", o, profile.balance) { o = it }
         PlanSlider("🏦 Накопления", "На финансовую цель", s, profile.balance) { s = it }
 
         Card(
@@ -99,7 +101,15 @@ fun PlanScreen(
             onClick = { viewModel.confirmPlan(m, o, s) },
         )
         Spacer(Modifier.height(8.dp))
-        FullWidthFinniButton(text = "Назад", onClick = onBack)
+        BottomButtons(onBack, onHome)
+    }
+}
+
+@Composable
+private fun BottomButtons(onBack: () -> Unit, onHome: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+        FinniSecondaryButton(text = "Назад", onClick = onBack, modifier = Modifier.weight(1f))
+        FinniSecondaryButton(text = "🏠 Главный экран", onClick = onHome, modifier = Modifier.weight(1f))
     }
 }
 
@@ -143,8 +153,8 @@ fun PlanFactTable(
                 Text("Факт", textAlign = TextAlign.End, modifier = Modifier.weight(0.4f))
                 Text("✓", textAlign = TextAlign.End, modifier = Modifier.weight(0.3f))
             }
-            PvfRow("🍖 Обязательные", planM, factM, within(planM, factM))
-            PvfRow("🎾 Необязательные", planO, factO, within(planO, factO))
+            PvfRow("🔧 Улучшения", planM, factM, within(planM, factM))
+            PvfRow("🍖 Продукты", planO, factO, within(planO, factO))
             PvfRow("🏦 Накопления", planS, factS, within(planS, factS))
         }
     }

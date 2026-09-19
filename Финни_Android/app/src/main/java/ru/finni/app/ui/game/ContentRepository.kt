@@ -25,12 +25,17 @@ data class TaskContent(
     val story: String,
     val steps: List<TaskStep>,
     val reward: Int,
+    /** Возрастная группа: 0 — 7–9 лет (всем), 1 — только 10–11 лет (задания посложнее). */
+    val ageGroup: Int,
 )
 
 data class ShopItemContent(
     val id: String,
     val name: String,
+    /** true = улучшение (max показателей, по порядку, один раз); false = продукт (восполняет, повторный). */
     val mandatory: Boolean,
+    /** Порядок покупки для улучшений (1..5); для продуктов 0. */
+    val keyOrder: Int,
     val price: Int,
     val mood: Int,
     val satiety: Int,
@@ -85,6 +90,7 @@ class ContentRepository @Inject constructor(
                 story = t.getString("story"),
                 steps = steps,
                 reward = t.getInt("reward"),
+                ageGroup = t.optInt("ageGroup", 0),
             )
         }
     }
@@ -98,7 +104,8 @@ class ContentRepository @Inject constructor(
             ShopItemContent(
                 id = s.getString("id"),
                 name = s.getString("name"),
-                mandatory = s.getString("category") == "MANDATORY",
+                mandatory = s.getString("category") == "IMPROVEMENT",
+                keyOrder = s.optInt("keyOrder", 0),
                 price = s.getInt("price"),
                 mood = effect.optInt("mood", 0),
                 satiety = effect.optInt("satiety", 0),
@@ -106,7 +113,7 @@ class ContentRepository @Inject constructor(
                 maxSatietyBonus = maxBonus.optInt("satiety", 0),
                 hint = s.getString("influenceHint"),
             )
-        }
+        }.sortedWith(compareBy({ !it.mandatory }, { it.keyOrder }))
     }
 
     private fun loadGoals(): List<GoalContent> {

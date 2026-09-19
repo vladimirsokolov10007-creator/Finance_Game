@@ -4,6 +4,15 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
+/** 1 → 2: добавлена колонка profiles.ageGroup (возрастная группа игрока). */
+private val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE profiles ADD COLUMN ageGroup INTEGER NOT NULL DEFAULT 0")
+    }
+}
 
 @Database(
     entities = [
@@ -12,7 +21,7 @@ import androidx.room.RoomDatabase
         TransactionEntity::class,
         TaskProgressEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class FinniDatabase : RoomDatabase() {
@@ -30,7 +39,8 @@ abstract class FinniDatabase : RoomDatabase() {
                     context.applicationContext,
                     FinniDatabase::class.java,
                     "finni.db",
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2)
+                    .build().also { instance = it }
             }
     }
 }

@@ -29,6 +29,7 @@ import ru.finni.core.economy.AchievementEngine
 @Composable
 fun HistoryScreen(
     onBack: () -> Unit,
+    onHome: () -> Unit,
     viewModel: GameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -147,7 +148,10 @@ fun HistoryScreen(
         }
 
         item {
-            FinniSecondaryButton(text = "Назад", onClick = onBack, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FinniSecondaryButton(text = "Назад", onClick = onBack, modifier = Modifier.weight(1f))
+                FinniSecondaryButton(text = "🏠 Главный экран", onClick = onHome, modifier = Modifier.weight(1f))
+            }
             Spacer(Modifier.height(8.dp))
         }
     }

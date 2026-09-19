@@ -35,6 +35,7 @@ import ru.finni.core.design.FinniSecondaryButton
 @Composable
 fun GoalsScreen(
     onBack: () -> Unit,
+    onHome: () -> Unit,
     onCelebration: (goalId: String) -> Unit,
     viewModel: GameViewModel = hiltViewModel(),
 ) {
@@ -134,7 +135,10 @@ fun GoalsScreen(
                 }
             }
         }
-        FinniSecondaryButton(text = "Назад", onClick = onBack, modifier = Modifier.fillMaxWidth())
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FinniSecondaryButton(text = "Назад", onClick = onBack, modifier = Modifier.weight(1f))
+            FinniSecondaryButton(text = "🏠 Главный экран", onClick = onHome, modifier = Modifier.weight(1f))
+        }
     }
 
     // Подтверждение снятия: показываем последствия ДО подтверждения
