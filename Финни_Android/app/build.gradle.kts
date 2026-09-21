@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -12,15 +14,32 @@ android {
 
     defaultConfig {
         applicationId = "ru.finni.app"
-        minSdk = 26
+        minSdk = 28
         targetSdk = 34
         versionCode = 5
         versionName = "0.5.0"
     }
 
+    // Подпись релиза: параметры в keystore.properties (не коммитить!)
+    val keystoreProps = Properties()
+    val ksPropsFile = rootProject.file("keystore.properties")
+    if (ksPropsFile.exists()) {
+        ksPropsFile.inputStream().use { stream -> keystoreProps.load(stream) }
+    }
+    signingConfigs {
+        create("release") {
+            storeFile = ksPropsFile.let { rootProject.file(keystoreProps.getProperty("storeFile", "finni-release.jks")) }
+            storePassword = keystoreProps.getProperty("storePassword")
+            keyAlias = keystoreProps.getProperty("keyAlias")
+            keyPassword = keystoreProps.getProperty("keyPassword")
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

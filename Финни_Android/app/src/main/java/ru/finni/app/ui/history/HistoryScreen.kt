@@ -29,7 +29,8 @@ import ru.finni.core.economy.AchievementEngine
 @Composable
 fun HistoryScreen(
     onBack: () -> Unit,
-    onHome: () -> Unit,
+    onRestart: () -> Unit,
+    onAdult: () -> Unit,
     viewModel: GameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -57,6 +58,12 @@ fun HistoryScreen(
                     Text("Цель: ${goal?.name ?: "не выбрана"}${goal?.let { " — накоплено ${profile.savings} из ${it.price}" } ?: ""}")
                 }
             }
+            Spacer(Modifier.height(6.dp))
+            FinniSecondaryButton(
+                text = "👪 Раздел взрослого",
+                onClick = onAdult,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         // v0.3: достижения
@@ -150,7 +157,7 @@ fun HistoryScreen(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FinniSecondaryButton(text = "Назад", onClick = onBack, modifier = Modifier.weight(1f))
-                FinniSecondaryButton(text = "🏠 Главный экран", onClick = onHome, modifier = Modifier.weight(1f))
+                FinniSecondaryButton(text = "🔄 Начать заново", onClick = { viewModel.resetProfile(onRestart) }, modifier = Modifier.weight(1f))
             }
             Spacer(Modifier.height(8.dp))
         }

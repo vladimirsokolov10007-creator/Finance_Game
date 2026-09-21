@@ -24,6 +24,7 @@ import ru.finni.app.ui.plan.PlanScreen
 import ru.finni.app.ui.shop.ShopScreen
 import ru.finni.app.ui.tasks.TaskPlayScreen
 import ru.finni.app.ui.tasks.TasksScreen
+import ru.finni.app.ui.adult.AdultScreen
 import ru.finni.app.ui.victory.VictoryScreen
 import ru.finni.core.design.FinniTheme
 
@@ -38,6 +39,7 @@ object Routes {
     const val TASK_PLAY = "task_play"
     const val PERIOD_END = "period_end"
     const val HISTORY = "history"
+    const val ADULT = "adult"
     const val GAME_OVER = "game_over"
     const val CELEBRATION = "celebration"
     const val VICTORY = "victory"
@@ -62,9 +64,15 @@ fun FinniNavHost() {
 
     NavHost(navController = navController, startDestination = Routes.ONBOARDING) {
         composable(Routes.ONBOARDING) {
-            OnboardingScreen(onDone = {
-                navController.navigate(Routes.CREATE_PET) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
-            })
+            OnboardingScreen(
+                onDone = {
+                    navController.navigate(Routes.CREATE_PET) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
+                },
+                onDemo = {
+                    navController.navigate(Routes.MAIN) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
+                },
+                gameViewModel = gameViewModel,
+            )
         }
         composable(Routes.CREATE_PET) {
             CreatePetScreen(onCreated = {
@@ -87,14 +95,22 @@ fun FinniNavHost() {
         composable(Routes.PLAN) {
             PlanScreen(
                 onBack = { navController.popBackStack() },
-                onHome = { navController.popBackStack(Routes.MAIN, false) },
+                onRestart = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                },
                 viewModel = gameViewModel,
             )
         }
         composable(Routes.SHOP) {
             ShopScreen(
                 onBack = { navController.popBackStack() },
-                onHome = { navController.popBackStack(Routes.MAIN, false) },
+                onRestart = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                },
                 onVictory = { navController.navigate(Routes.VICTORY) },
                 viewModel = gameViewModel,
             )
@@ -102,7 +118,11 @@ fun FinniNavHost() {
         composable(Routes.GOALS) {
             GoalsScreen(
                 onBack = { navController.popBackStack() },
-                onHome = { navController.popBackStack(Routes.MAIN, false) },
+                onRestart = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                },
                 onCelebration = { goalId ->
                     navController.navigate("${Routes.CELEBRATION}/$goalId")
                 },
@@ -112,7 +132,11 @@ fun FinniNavHost() {
         composable(Routes.TASKS) {
             TasksScreen(
                 onBack = { navController.popBackStack() },
-                onHome = { navController.popBackStack(Routes.MAIN, false) },
+                onRestart = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                },
                 onPlay = { id -> navController.navigate("${Routes.TASK_PLAY}/$id") },
                 viewModel = gameViewModel,
             )
@@ -124,7 +148,11 @@ fun FinniNavHost() {
             TaskPlayScreen(
                 taskId = entry.arguments?.getString("taskId") ?: "",
                 onBack = { navController.popBackStack() },
-                onHome = { navController.popBackStack(Routes.MAIN, false) },
+                onRestart = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                },
                 viewModel = gameViewModel,
             )
         }
@@ -139,7 +167,28 @@ fun FinniNavHost() {
         composable(Routes.HISTORY) {
             HistoryScreen(
                 onBack = { navController.popBackStack() },
-                onHome = { navController.popBackStack(Routes.MAIN, false) },
+                onRestart = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                },
+                onAdult = { navController.navigate(Routes.ADULT) },
+                viewModel = gameViewModel,
+            )
+        }
+        composable(Routes.ADULT) {
+            AdultScreen(
+                onBack = { navController.popBackStack() },
+                onRestart = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                },
+                onReset = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                },
                 viewModel = gameViewModel,
             )
         }
@@ -161,7 +210,7 @@ fun FinniNavHost() {
                         popUpTo(Routes.MAIN) { inclusive = true }
                     }
                 },
-                onHome = { navController.popBackStack() },
+                onHome = { navController.popBackStack(Routes.MAIN, false) },
                 viewModel = gameViewModel,
             )
         }

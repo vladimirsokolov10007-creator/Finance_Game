@@ -33,7 +33,7 @@ import ru.finni.core.design.FinniSecondaryButton
 fun TaskPlayScreen(
     taskId: String,
     onBack: () -> Unit,
-    onHome: () -> Unit,
+    onRestart: () -> Unit,
     viewModel: GameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -130,7 +130,7 @@ fun TaskPlayScreen(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FinniSecondaryButton(text = "К списку заданий", onClick = onBack, modifier = Modifier.weight(1f))
-            FinniSecondaryButton(text = "🏠 Главный экран", onClick = onHome, modifier = Modifier.weight(1f))
+            FinniSecondaryButton(text = "🔄 Начать заново", onClick = { viewModel.resetProfile(onRestart) }, modifier = Modifier.weight(1f))
         }
     }
 }

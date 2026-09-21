@@ -32,7 +32,7 @@ import ru.finni.core.design.FullWidthFinniButton
 @Composable
 fun PlanScreen(
     onBack: () -> Unit,
-    onHome: () -> Unit,
+    onRestart: () -> Unit,
     viewModel: GameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -62,7 +62,7 @@ fun PlanScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(16.dp))
-            BottomButtons(onBack, onHome)
+            BottomButtons(onBack, onRestart, viewModel)
             return@Column
         }
 
@@ -101,15 +101,15 @@ fun PlanScreen(
             onClick = { viewModel.confirmPlan(m, o, s) },
         )
         Spacer(Modifier.height(8.dp))
-        BottomButtons(onBack, onHome)
+        BottomButtons(onBack, onRestart, viewModel)
     }
 }
 
 @Composable
-private fun BottomButtons(onBack: () -> Unit, onHome: () -> Unit) {
+private fun BottomButtons(onBack: () -> Unit, onRestart: () -> Unit, viewModel: GameViewModel) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
         FinniSecondaryButton(text = "Назад", onClick = onBack, modifier = Modifier.weight(1f))
-        FinniSecondaryButton(text = "🏠 Главный экран", onClick = onHome, modifier = Modifier.weight(1f))
+        FinniSecondaryButton(text = "🔄 Начать заново", onClick = { viewModel.resetProfile(onRestart) }, modifier = Modifier.weight(1f))
     }
 }
 

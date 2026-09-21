@@ -524,9 +524,121 @@ class GameViewModel @Inject constructor(
         )
     }
 
-    /** Полный сброс игры: удаляет профиль и весь прогресс (v0.3). */
-    fun resetProfile(onDone: () -> Unit = {}) {
+    /**
+     * Демо-режим для показа коллегам: подменяет текущий профиль готовым
+     * сценарием «середина игры» (Неделя 3, куплены 2 улучшения, исполнена
+     * одна цель, есть история транзакций и закрытые недели). Старый профиль
+     * удаляется — как при сбросе из раздела взрослого.
+     */
+    fun startDemoProfile(onDone: () -> Unit = {}) {
         viewModelScope.launch {
+            repository.resetProfile()
+            prefs.edit().clear().apply()
+
+            val now = System.currentTimeMillis()
+            val weekMs = 7L * 24 * 60 * 60 * 1000
+            val profile = ProfileEntity(
+                id = UUID.randomUUID().toString(),
+                childName = "Демо",
+                petName = "Финни",
+                petBody = 2,          // Мальчик
+                petColor = 0,
+                petAccessory = 3,     // трофейный аксессуар за исполненную цель
+                ageGroup = 0,         // 7–9 лет
+                balance = 96,
+                savings = 20,
+                goalId = "goal_bicycle",
+                petStage = 1,         // «Подросток»
+                mood = 82,
+                satiety = 78,
+                periodIndex = 3,
+                isTestProfile = true,
+                createdAt = now - 2 * weekMs,
+            )
+            repository.updateProfile(profile)
+
+            // две закрытые недели: идеальная и обычная
+            repository.upsertPeriod(PeriodEntity(
+                id = UUID.randomUUID().toString(), profileId = profile.id, index = 1,
+                planMandatory = 30, planOptional = 10, planSavings = 10,
+                factMandatory = 30, factOptional = 10, factSavings = 10,
+                mandatoryCovered = true, savingsMet = true, adherence = 1f,
+                status = "CLOSED", startedAt = now - 2 * weekMs, closedAt = now - weekMs,
+            ))
+            repository.upsertPeriod(PeriodEntity(
+                id = UUID.randomUUID().toString(), profileId = profile.id, index = 2,
+                planMandatory = 30, planOptional = 15, planSavings = 15,
+                factMandatory = 30, factOptional = 20, factSavings = 10,
+                mandatoryCovered = true, savingsMet = false, adherence = 0.89f,
+                status = "CLOSED", startedAt = now - weekMs, closedAt = now - 3 * 24 * 60 * 60 * 1000,
+            ))
+            // активная Неделя 3: план подтверждён, факт частично заполнен
+            repository.upsertPeriod(PeriodEntity(
+                id = UUID.randomUUID().toString(), profileId = profile.id, index = 3,
+                planMandatory = 35, planOptional = 15, planSavings = 15,
+                factMandatory = 10, factOptional = 12, factSavings = 10,
+                mandatoryCovered = false, savingsMet = false, adherence = 0f,
+                status = "ACTIVE", startedAt = now - 3 * 24 * 60 * 60 * 1000, closedAt = null,
+            ))
+
+            // история транзакций — баланс объясним
+            repository.addTransaction(profile.id, null, "INCOME_START", 40, "Стартовый бюджет")
+            repository.addTransaction(profile.id, null, "PURCHASE_IMPROVEMENT", -10, "Лежанка «Облако»")
+            repository.addTransaction(profile.id, null, "INCOME_WEEKLY", 30, "Карманные деньги недели 2")
+            repository.addTransaction(profile.id, null, "PURCHASE_IMPROVEMENT", -15, "Автокормушка")
+            repository.addTransaction(profile.id, null, "SAVINGS_IN", 10, "В накопления")
+            repository.addTransaction(profile.id, null, "INCOME_TASK", 12, "Задание: День рождения Финни")
+            repository.addTransaction(profile.id, null, "SAVINGS_IN", 60, "В накопления")
+            repository.addTransaction(profile.id, null, "GOAL_COMPLETED", 0, "Цель исполнена: Большой мяч для игры")
+            repository.addTransaction(profile.id, null, "INCOME_WEEKLY", 30, "Карманные деньги недели 3")
+            repository.addTransaction(profile.id, null, "PURCHASE_PRODUCT", -12, "Вкусный обед")
+            repository.addTransaction(profile.id, null, "PURCHASE_PRODUCT", -8, "Мячик с погремушкой")
+            repository.addTransaction(profile.id, null, "SAVINGS_OUT", -60, "Снято с накоплений")
+            repository.addTransaction(profile.id, null, "INCOME_TASK", 14, "Задание: Мячик мечты")
+
+            // прогресс по заданиям
+            repository.upsertTaskProgress(TaskProgressEntity(
+                taskId = "task_budget_1", profileId = profile.id,
+                completed = true, attempts = 1, lastCorrect = true,
+            ))
+            repository.upsertTaskProgress(TaskProgressEntity(
+                taskId = "task_savings_1", profileId = profile.id,
+                completed = true, attempts = 2, lastCorrect = true,
+            ))
+
+            // покупки/трофеи/достижения/статистика
+            prefs.edit()
+                .putInt(KEY_MAX_MOOD, 110)
+                .putInt(KEY_MAX_SATIETY, 110)
+                .putStringSet(KEY_PURCHASED, setOf("imp_bed", "imp_feeder"))
+                .putStringSet(KEY_TROPHIES, setOf("goal_ball"))
+                .putStringSet(KEY_ACHIEVEMENTS, setOf(
+                    "first_purchase", "scholar", "planner", "rich",
+                ))
+                .putInt(STAT_PURCHASES, 4)
+                .putInt(STAT_MANDATORY, 2)
+                .putInt(STAT_PERFECT, 1)
+                .putInt(STAT_GOALS, 1)
+                .putInt(STAT_BEST_BALANCE, 110)
+                .apply()
+
+            _uiState.update {
+                it.copy(
+                    periodOutcome = null,
+                    maxMood = 110,
+                    maxSatiety = 110,
+                    purchasedItems = setOf("imp_bed", "imp_feeder"),
+                    trophies = setOf("goal_ball"),
+                    achievements = setOf("first_purchase", "scholar", "planner", "rich"),
+                )
+            }
+            emitEvent("🎬 Демо-профиль готов: Неделя 3, цель — велосипед!")
+            onDone()
+        }
+    }
+
+    /** Полный сброс игры: удаляет профиль и весь прогресс (v0.3). */
+    fun resetProfile(onDone: () -> Unit = {}) {        viewModelScope.launch {
             repository.resetProfile()
             prefs.edit().clear().apply()
             _uiState.update {

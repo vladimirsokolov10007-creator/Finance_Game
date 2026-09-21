@@ -11,15 +11,18 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import ru.finni.app.ui.game.GameViewModel
 import ru.finni.core.design.FullWidthFinniButton
 
@@ -27,12 +30,15 @@ import ru.finni.core.design.FullWidthFinniButton
 @Composable
 fun OnboardingScreen(
     onDone: () -> Unit,
-    gameViewModel: GameViewModel = hiltViewModel(),
+    onDemo: () -> Unit,
+    gameViewModel: GameViewModel,
 ) {
     val gameState by gameViewModel.uiState.collectAsState()
-    // профиль уже есть — пропускаем онбординг (восстановление сессии)
+    var demoStarted by remember { mutableStateOf(false) }
+    // профиль уже есть — пропускаем онбординг (восстановление сессии);
+    // после запуска демо навигацией управляет onDemo, а не этот эффект
     LaunchedEffect(gameState.profile) {
-        if (gameState.profile != null) onDone()
+        if (gameState.profile != null && !demoStarted) onDone()
     }
 
     Column(
@@ -60,6 +66,17 @@ fun OnboardingScreen(
 
         Spacer(Modifier.height(20.dp))
         FullWidthFinniButton(text = "Понятно, начнём!", onClick = onDone)
+        Spacer(Modifier.height(10.dp))
+        TextButton(onClick = {
+            demoStarted = true
+            gameViewModel.startDemoProfile(onDone = onDemo)
+        }) {
+            Text(
+                "🎬 Демо-режим: показ для коллег",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Spacer(Modifier.height(10.dp))
         Text(
             "Гостевой режим: без имени, телефона и e-mail. Прогресс хранится только на этом устройстве.",
