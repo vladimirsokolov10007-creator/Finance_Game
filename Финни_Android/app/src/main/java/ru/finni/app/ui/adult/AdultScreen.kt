@@ -14,6 +14,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -111,6 +113,66 @@ fun AdultScreen(
                         }
                         val avg = closed.map { it.adherence }.average().toFloat()
                         Text("Среднее попадание в план: ${(avg * 100).toInt()}%")
+                    }
+                }
+            }
+
+            // v0.7 (ТЗ п. 2.5.12): просветительские цели приложения
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Цели обучения", style = MaterialTheme.typography.titleMedium)
+                    Text("• Понимать, что расходы не должны превышать доходы")
+                    Text("• Различать обязательные и необязательные расходы")
+                    Text("• Планировать покупки в условиях ограниченного бюджета")
+                    Text("• Ставить цель и регулярно откладывать часть средств")
+                    Text("• Оценивать собственные финансовые решения")
+                }
+            }
+
+            // v0.7 (ТЗ п. 3.6): настройки доступности
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Row(
+                    Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Анимация питомца", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Выключите, если анимация отвлекает или утомляет.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = !state.animOff,
+                        onCheckedChange = { viewModel.setAnimationEnabled(it) },
+                    )
+                }
+            }
+
+            // v0.7 (ТЗ п. 2.5.13): сброс демонстрационного профиля к исходному состоянию
+            if (state.demo) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Демонстрационный режим", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Тестовый профиль можно вернуть к исходному состоянию — сценарий показа будет как при первом запуске демо.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        FinniButton(
+                            text = "🎬 Сбросить демо-профиль",
+                            onClick = { viewModel.startDemoProfile() },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
             }

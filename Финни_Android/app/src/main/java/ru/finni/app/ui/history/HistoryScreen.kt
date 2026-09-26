@@ -10,13 +10,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,6 +43,7 @@ fun HistoryScreen(
     val transactions by viewModel.transactions.collectAsState()
     val progress by viewModel.taskProgress.collectAsState()
     val closed by viewModel.closedPeriods.collectAsState()
+    var showHowTo by rememberSaveable { mutableStateOf(false) }
     val stages = listOf("Малыш", "Друг", "Звезда")
     val goal = viewModel.content.goals.firstOrNull { it.id == profile.goalId }
 
@@ -58,6 +64,13 @@ fun HistoryScreen(
                     Text("Цель: ${goal?.name ?: "не выбрана"}${goal?.let { " — накоплено ${profile.savings} из ${it.price}" } ?: ""}")
                 }
             }
+            Spacer(Modifier.height(6.dp))
+            // v0.7 (ТЗ п. 2.5.1): подсказка доступна в любой момент
+            FinniSecondaryButton(
+                text = "❓ Как играть",
+                onClick = { showHowTo = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(Modifier.height(6.dp))
             FinniSecondaryButton(
                 text = "👪 Раздел взрослого",
@@ -161,5 +174,24 @@ fun HistoryScreen(
             }
             Spacer(Modifier.height(8.dp))
         }
+    }
+
+    // v0.7: повтор начальной подсказки — три типа решений (ТЗ п. 2.5.1)
+    if (showHowTo) {
+        AlertDialog(
+            onDismissRequest = { showHowTo = false },
+            title = { Text("Что можно делать с монетами?") },
+            text = {
+                Text(
+                    "🍖 Потратить на обязательное — еда и уход. Без них Финни грустит, покупаем в первую очередь.\n\n" +
+                            "🎾 Потратить на желаемое — игрушки. Приятно, но может подождать.\n\n" +
+                            "🏦 Отложить — копи на большую цель понемногу каждую неделю.\n\n" +
+                            "В конце недели сравним план с тем, что получилось."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showHowTo = false }) { Text("Понятно!") }
+            },
+        )
     }
 }

@@ -14,6 +14,13 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
+/** 2 → 3: добавлена колонка profiles.petBg (фон комнаты: 9 комбинаций внешности, ТЗ п. 2.6). */
+private val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE profiles ADD COLUMN petBg INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 @Database(
     entities = [
         ProfileEntity::class,
@@ -21,7 +28,7 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
         TransactionEntity::class,
         TaskProgressEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class FinniDatabase : RoomDatabase() {
@@ -39,7 +46,7 @@ abstract class FinniDatabase : RoomDatabase() {
                     context.applicationContext,
                     FinniDatabase::class.java,
                     "finni.db",
-                ).addMigrations(MIGRATION_1_2)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build().also { instance = it }
             }
     }

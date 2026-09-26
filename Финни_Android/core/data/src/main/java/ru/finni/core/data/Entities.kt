@@ -15,6 +15,8 @@ data class ProfileEntity(
     val petAccessory: Int,
     /** Возрастная группа игрока: 0 — 7–9 лет, 1 — 10–11 лет (влияет на сложность заданий). */
     val ageGroup: Int,
+    /** Фон комнаты питомца: 0 — Небо, 1 — Мята, 2 — Персик (3 персонажа × 3 фона = 9 комбинаций, ТЗ п. 2.6). */
+    val petBg: Int,
     val balance: Int,
     val savings: Int,
     val goalId: String?,

@@ -54,7 +54,8 @@ fun TasksScreen(
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Задания", style = MaterialTheme.typography.titleLarge)
         Text(
-            "Игровые ситуации с выбором и последствиями. Из каждой категории можно выполнить только 1 задание в день." +
+            "Игровые ситуации с выбором и последствиями. Из каждой категории можно выполнить только 1 задание в день" +
+                    " (в демо-режиме лимита нет)." +
                     if (ageGroup == 1) " Возраст 10–11: добавлены задания посложнее." else "",
             style = MaterialTheme.typography.bodyMedium,
         )

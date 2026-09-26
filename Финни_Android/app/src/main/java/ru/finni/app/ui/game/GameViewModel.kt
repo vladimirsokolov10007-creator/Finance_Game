@@ -45,6 +45,10 @@ data class GameUiState(
     val purchasedItems: Set<String> = emptySet(),
     val trophies: Set<String> = emptySet(),
     val achievements: Set<String> = emptySet(),
+    /** v0.7: демонстрационный режим — задания без календарного лимита, профиль сбрасываем. */
+    val demo: Boolean = false,
+    /** v0.7: анимация питомца выключена (доступность, ТЗ п. 3.6). */
+    val animOff: Boolean = false,
 )
 
 private const val PREFS = "finni_prefs"
@@ -59,6 +63,8 @@ private const val STAT_PERFECT = "stat_perfect_plans"
 private const val STAT_GOALS = "stat_goals"
 private const val STAT_BEST_BALANCE = "stat_best_balance"
 private const val KEY_TOPIC_DAY_PREFIX = "task_topic_day_"
+private const val KEY_DEMO = "demo_mode"
+private const val KEY_ANIM_OFF = "anim_off"
 
 /** Центральный ViewModel игрового цикла. Один инстанс создаётся в FinniNavHost и передаётся всем экранам. */
 @HiltViewModel
@@ -86,6 +92,8 @@ class GameViewModel @Inject constructor(
                 purchasedItems = prefs.getStringSet(KEY_PURCHASED, emptySet()) ?: emptySet(),
                 trophies = prefs.getStringSet(KEY_TROPHIES, emptySet()) ?: emptySet(),
                 achievements = prefs.getStringSet(KEY_ACHIEVEMENTS, emptySet()) ?: emptySet(),
+                demo = prefs.getBoolean(KEY_DEMO, false),
+                animOff = prefs.getBoolean(KEY_ANIM_OFF, false),
             )
         }
         viewModelScope.launch {
@@ -401,9 +409,25 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    /** Выполнялось ли сегодня задание из этой категории (лимит 1 в день). */
-    fun topicDoneToday(topic: String): Boolean =
-        prefs.getString(KEY_TOPIC_DAY_PREFIX + topic, null) == todayStr()
+    /** Выполнялось ли сегодня задание из этой категории (лимит 1 в день).
+     *  В демонстрационном режиме (ТЗ п. 2.5.8) лимит не применяется. */
+    fun topicDoneToday(topic: String): Boolean {
+        if (_uiState.value.demo) return false
+        return prefs.getString(KEY_TOPIC_DAY_PREFIX + topic, null) == todayStr()
+    }
+
+    /** Включение/выключение анимации питомца (доступность, ТЗ п. 3.6). */
+    fun setAnimationEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_ANIM_OFF, !enabled).apply()
+        _uiState.update { it.copy(animOff = !enabled) }
+    }
+
+    /** Активное задание для главного экрана: первое ещё не пройденное (ТЗ п. 2.5.3). */
+    fun activeTask(): TaskContent? {
+        val done = taskProgress.value
+        return content.tasks.firstOrNull { done[it.id]?.completed != true }
+            ?: content.tasks.firstOrNull()
+    }
 
     private fun todayStr() = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
         .format(java.util.Date())
@@ -545,40 +569,55 @@ class GameViewModel @Inject constructor(
                 petColor = 0,
                 petAccessory = 3,     // трофейный аксессуар за исполненную цель
                 ageGroup = 0,         // 7–9 лет
+                petBg = 1,            // Мята
                 balance = 96,
                 savings = 20,
                 goalId = "goal_bicycle",
-                petStage = 1,         // «Подросток»
+                petStage = 2,         // «Звезда» — видно развитие за 5 недель
                 mood = 82,
                 satiety = 78,
-                periodIndex = 3,
+                periodIndex = 5,
                 isTestProfile = true,
-                createdAt = now - 2 * weekMs,
+                createdAt = now - 4 * weekMs,
             )
             repository.updateProfile(profile)
 
-            // две закрытые недели: идеальная и обычная
+            // четыре закрытые недели: идеальная, обычная, слабая и хорошая
             repository.upsertPeriod(PeriodEntity(
                 id = UUID.randomUUID().toString(), profileId = profile.id, index = 1,
                 planMandatory = 30, planOptional = 10, planSavings = 10,
                 factMandatory = 30, factOptional = 10, factSavings = 10,
                 mandatoryCovered = true, savingsMet = true, adherence = 1f,
-                status = "CLOSED", startedAt = now - 2 * weekMs, closedAt = now - weekMs,
+                status = "CLOSED", startedAt = now - 4 * weekMs, closedAt = now - 3 * weekMs,
             ))
             repository.upsertPeriod(PeriodEntity(
                 id = UUID.randomUUID().toString(), profileId = profile.id, index = 2,
                 planMandatory = 30, planOptional = 15, planSavings = 15,
                 factMandatory = 30, factOptional = 20, factSavings = 10,
                 mandatoryCovered = true, savingsMet = false, adherence = 0.89f,
-                status = "CLOSED", startedAt = now - weekMs, closedAt = now - 3 * 24 * 60 * 60 * 1000,
+                status = "CLOSED", startedAt = now - 3 * weekMs, closedAt = now - 2 * weekMs,
             ))
-            // активная Неделя 3: план подтверждён, факт частично заполнен
             repository.upsertPeriod(PeriodEntity(
                 id = UUID.randomUUID().toString(), profileId = profile.id, index = 3,
                 planMandatory = 35, planOptional = 15, planSavings = 15,
+                factMandatory = 20, factOptional = 30, factSavings = 5,
+                mandatoryCovered = false, savingsMet = false, adherence = 0.61f,
+                status = "CLOSED", startedAt = now - 2 * weekMs, closedAt = now - weekMs,
+            ))
+            repository.upsertPeriod(PeriodEntity(
+                id = UUID.randomUUID().toString(), profileId = profile.id, index = 4,
+                planMandatory = 35, planOptional = 15, planSavings = 15,
+                factMandatory = 35, factOptional = 12, factSavings = 15,
+                mandatoryCovered = true, savingsMet = true, adherence = 0.96f,
+                status = "CLOSED", startedAt = now - weekMs, closedAt = now - 2 * 24 * 60 * 60 * 1000,
+            ))
+            // активная Неделя 5: план подтверждён, факт частично заполнен
+            repository.upsertPeriod(PeriodEntity(
+                id = UUID.randomUUID().toString(), profileId = profile.id, index = 5,
+                planMandatory = 35, planOptional = 15, planSavings = 15,
                 factMandatory = 10, factOptional = 12, factSavings = 10,
                 mandatoryCovered = false, savingsMet = false, adherence = 0f,
-                status = "ACTIVE", startedAt = now - 3 * 24 * 60 * 60 * 1000, closedAt = null,
+                status = "ACTIVE", startedAt = now - 2 * 24 * 60 * 60 * 1000, closedAt = null,
             ))
 
             // история транзакций — баланс объясним
@@ -605,21 +644,26 @@ class GameViewModel @Inject constructor(
                 taskId = "task_savings_1", profileId = profile.id,
                 completed = true, attempts = 2, lastCorrect = true,
             ))
+            repository.upsertTaskProgress(TaskProgressEntity(
+                taskId = "task_purchases_1", profileId = profile.id,
+                completed = true, attempts = 1, lastCorrect = true,
+            ))
 
-            // покупки/трофеи/достижения/статистика
+            // покупки/трофеи/достижения/статистика + флаг демо-режима (ТЗ п. 2.5.13)
             prefs.edit()
                 .putInt(KEY_MAX_MOOD, 110)
                 .putInt(KEY_MAX_SATIETY, 110)
                 .putStringSet(KEY_PURCHASED, setOf("imp_bed", "imp_feeder"))
                 .putStringSet(KEY_TROPHIES, setOf("goal_ball"))
                 .putStringSet(KEY_ACHIEVEMENTS, setOf(
-                    "first_purchase", "scholar", "planner", "rich",
+                    "first_purchase", "scholar", "planner", "rich", "dream",
                 ))
-                .putInt(STAT_PURCHASES, 4)
+                .putInt(STAT_PURCHASES, 5)
                 .putInt(STAT_MANDATORY, 2)
-                .putInt(STAT_PERFECT, 1)
+                .putInt(STAT_PERFECT, 2)
                 .putInt(STAT_GOALS, 1)
                 .putInt(STAT_BEST_BALANCE, 110)
+                .putBoolean(KEY_DEMO, true)
                 .apply()
 
             _uiState.update {
@@ -629,16 +673,18 @@ class GameViewModel @Inject constructor(
                     maxSatiety = 110,
                     purchasedItems = setOf("imp_bed", "imp_feeder"),
                     trophies = setOf("goal_ball"),
-                    achievements = setOf("first_purchase", "scholar", "planner", "rich"),
+                    achievements = setOf("first_purchase", "scholar", "planner", "rich", "dream"),
+                    demo = true,
                 )
             }
-            emitEvent("🎬 Демо-профиль готов: Неделя 3, цель — велосипед!")
+            emitEvent("🎬 Демо-профиль готов: Неделя 5, цель — велосипед!")
             onDone()
         }
     }
 
     /** Полный сброс игры: удаляет профиль и весь прогресс (v0.3). */
-    fun resetProfile(onDone: () -> Unit = {}) {        viewModelScope.launch {
+    fun resetProfile(onDone: () -> Unit = {}) {
+        viewModelScope.launch {
             repository.resetProfile()
             prefs.edit().clear().apply()
             _uiState.update {
@@ -649,6 +695,8 @@ class GameViewModel @Inject constructor(
                     purchasedItems = emptySet(),
                     trophies = emptySet(),
                     achievements = emptySet(),
+                    demo = false,
+                    animOff = false,
                 )
             }
             transactions.value = emptyList()

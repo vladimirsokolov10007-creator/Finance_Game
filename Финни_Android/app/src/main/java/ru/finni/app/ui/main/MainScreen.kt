@@ -1,5 +1,6 @@
 package ru.finni.app.ui.main
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,6 +61,9 @@ fun MainScreen(
                     profile = p,
                     maxMood = state.maxMood,
                     maxSatiety = state.maxSatiety,
+                    animOff = state.animOff,
+                    goal = viewModel.content.goals.firstOrNull { it.id == p.goalId },
+                    activeTask = viewModel.activeTask(),
                     gameOver = PetEngine.isGameOver(
                         ru.finni.core.economy.PetCondition(p.mood, p.satiety, state.maxMood, state.maxSatiety),
                     ),
@@ -85,6 +89,9 @@ private fun MainContent(
     profile: ProfileEntity,
     maxMood: Int,
     maxSatiety: Int,
+    animOff: Boolean,
+    goal: ru.finni.app.ui.game.GoalContent?,
+    activeTask: ru.finni.app.ui.game.TaskContent?,
     gameOver: Boolean,
     warningLevel: Int,
     onOpenPlan: () -> Unit,
@@ -96,12 +103,19 @@ private fun MainContent(
 ) {
     val accessories = listOf("", "🎀", "👑", "🎖️", "🚴", "⛺")
     val stages = listOf("Малыш", "Друг", "Звезда")
+    // v0.7: выбранный фон комнаты (3 персонажа × 3 фона = 9 комбинаций, ТЗ п. 2.6)
+    val roomColors = listOf(
+        androidx.compose.ui.graphics.Color(0xFFEAF4FF), // Небо
+        androidx.compose.ui.graphics.Color(0xFFE8F7EE), // Мята
+        androidx.compose.ui.graphics.Color(0xFFFDF0E6), // Персик
+    )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .background(roomColors.getOrElse(profile.petBg) { roomColors.first() })
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("Неделя ${profile.periodIndex}", style = MaterialTheme.typography.titleLarge)
@@ -109,7 +123,9 @@ private fun MainContent(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            colors = CardDefaults.cardColors(
+                containerColor = roomColors.getOrElse(profile.petBg) { roomColors.first() },
+            ),
         ) {
             Column(
                 modifier = Modifier
@@ -118,7 +134,7 @@ private fun MainContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // v0.5: анимированный питомец (видео) вместо эмодзи; персонаж из профиля
-                PetAnimation(character = profile.petBody)
+                PetAnimation(character = profile.petBody, animate = !animOff)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "${profile.petName} · ${stages.getOrElse(profile.petStage) { "Малыш" }}" +
@@ -152,7 +168,17 @@ private fun MainContent(
             BalanceChip("Баланс", "🪙 ${profile.balance}")
             BalanceChip("Накопления", "🏦 ${profile.savings}")
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
+
+        // v0.7 (ТЗ п. 2.5.3): текущая цель и активное задание видны на главном одновременно
+        GoalAndTaskCards(
+            goal = goal,
+            savings = profile.savings,
+            activeTask = activeTask,
+            onOpenGoals = onOpenGoals,
+            onOpenTasks = onOpenTasks,
+        )
+        Spacer(Modifier.height(12.dp))
 
         if (gameOver) {
             // v0.3: игра окончена — цикл недоступен
@@ -196,6 +222,56 @@ private fun MainContent(
         }
         Spacer(Modifier.height(16.dp))
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun GoalAndTaskCards(
+    goal: ru.finni.app.ui.game.GoalContent?,
+    savings: Int,
+    activeTask: ru.finni.app.ui.game.TaskContent?,
+    onOpenGoals: () -> Unit,
+    onOpenTasks: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            onClick = onOpenGoals,
+        ) {
+            Column(Modifier.padding(12.dp)) {
+                Text("🎯 Цель: ${goal?.name ?: "не выбрана"}", style = MaterialTheme.typography.titleMedium)
+                if (goal != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "Накоплено $savings из ${goal.price} 🪙",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { (savings / goal.price.toFloat()).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            onClick = onOpenTasks,
+        ) {
+            Column(Modifier.padding(12.dp)) {
+                Text("🎓 Задание дня", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    activeTask?.title ?: "Все задания выполнены — молодец!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

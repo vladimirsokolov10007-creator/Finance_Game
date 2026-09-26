@@ -100,8 +100,15 @@ fun CreatePetScreen(
             selected = state.ageGroup,
             onSelect = viewModel::onAgeGroupChange,
         )
+        Text("Комната питомца", style = MaterialTheme.typography.titleMedium)
+        PickerRow(
+            items = listOf("Небо", "Мята", "Персик"),
+            selected = state.bg,
+            onSelect = viewModel::onBgChange,
+        )
         Text(
-            "Персонаж выбирается навсегда. Возраст влияет на задания: для 10–11 лет они чуть сложнее.",
+            "Персонаж выбирается навсегда. Возраст влияет на задания: для 10–11 лет они чуть сложнее. " +
+                    "Персонажи и комнаты сочетаются: 3 × 3 = 9 разных питомцев.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
